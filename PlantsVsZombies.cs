@@ -15,7 +15,7 @@ namespace CrowdControl.Games.Packs
 {
     public class PlantsVsZombies : InjectEffectPack
     {
-        public override Game Game { get; } = new Game(139, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
+        public override Game Game { get; } = new Game(144, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
 
         #region AddressChains
 
