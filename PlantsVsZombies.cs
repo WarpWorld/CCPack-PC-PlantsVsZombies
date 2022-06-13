@@ -15,7 +15,7 @@ namespace CrowdControl.Games.Packs
 {
     public class PlantsVsZombies : InjectEffectPack
     {
-        public override Game Game { get; } = new Game(144, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
+        public override Game Game { get; } = new Game(139, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
 
         #region AddressChains
 
@@ -39,6 +39,7 @@ namespace CrowdControl.Games.Packs
 
         private const byte JZ = 0x84;
         private const byte JNZ = 0x85;
+        private const byte JNZ_SHORT = 0x75;
         private const byte JMP = 0xEB;
         private const byte NOP = 0x90;
         private const ushort NOP_NOP = 0x9090;
@@ -57,10 +58,13 @@ namespace CrowdControl.Games.Packs
         private const int MAX_USABLE_CARD = 39;
 
         private const int ZOMBIE_OBJECT_SIZE = 0x168;
+        private const int PLANT_OBJECT_SIZE = 0x14C;
 
         private const float SIZE_SMALL = 0.5f;
         private const float SIZE_NORMAL = 1.0f;
         private const float SIZE_BIG = 2.0f;
+
+        private const int MIN_VISIBLE_X = 700;
 
         private long imagebase;
 
@@ -206,6 +210,7 @@ namespace CrowdControl.Games.Packs
                     new Effect("Auto Collect", "autocollect"),
                     new Effect("Invincible Zombies", "invinciblezombies"),
                     new Effect("Slow Bullets", "slowbullets"),
+                    new Effect("Fast Bullets", "fastbullets"),
                     new Effect("High Gravity Bullets", "highgravitybullets"),
                     new Effect("Backwards Bullets", "backwardsbullets"),
                     new Effect("Freeze Bullets", "freezebullets"),
@@ -219,6 +224,10 @@ namespace CrowdControl.Games.Packs
                     new Effect("Zombies in the middle", "zombiesmiddle"),
                     new Effect("Invisible Zombies", "invisiblezombies"),
                     new Effect("Teleport Zombies to House", "teleportzombies"),
+                    new Effect("Charm Zombies", "charmzombies"),
+                    new Effect("Clear Zombies", "clearzombies"),
+                    new Effect("Clear Plants", "clearplants"),
+                    new Effect("Shuffle Cards", "shufflecards"),
                 };
 
                 return result;
@@ -459,7 +468,7 @@ namespace CrowdControl.Games.Packs
 
                         tim.WhenCompleted.Then(t =>
                         {
-                            collect_ch.SetByte(JNZ);
+                            collect_ch.SetByte(JNZ_SHORT);
                             Connector.SendMessage("Auto collect ended !");
                         });
                         break;
@@ -467,6 +476,8 @@ namespace CrowdControl.Games.Packs
                 case "invinciblezombies":
                     {
                         if (invincible_zombies_ch.GetByte() == NOP) { DelayEffect(request); return; }
+
+                        if (!is_zombie_out()) { DelayEffect(request); return; }
 
                         var tim = StartTimed(request,
                         () => true,
@@ -652,6 +663,8 @@ namespace CrowdControl.Games.Packs
                             AddressChain active_zombies_ch = active_zombies_ptr.Follow();
                             AddressChain tmp_ch;
 
+                            if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return ;  }
+
                             var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} made all zombies " + (is_big ? "bigger" : "smaller") +  " !"), TimeSpan.FromSeconds(1),
@@ -720,6 +733,8 @@ namespace CrowdControl.Games.Packs
                 case "zombiesspeed":
                     {
                         if (zombies_speed_ch.GetByte() == 0xC7) { DelayEffect(request); return; }
+
+                        if (!is_zombie_out()) { DelayEffect(request); return; }
 
                         byte[] t1 = { 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
                         switch (code[1])
@@ -857,6 +872,133 @@ namespace CrowdControl.Games.Packs
                         }
                         break;
                     }
+                case "charmzombies":
+                    {
+                        AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                        int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                        if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                        {
+                            AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                            AddressChain tmp_ch;
+
+                            if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
+
+                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} charmed all the zombies !"), TimeSpan.FromSeconds(1),
+                            () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0xB8).SetByte(1);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "zombiesstatus");
+                            act.WhenCompleted.Then(t =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0xB8).SetByte(0);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                Connector.SendMessage("Zombies stopped being charmed !");
+                            });
+                        }
+                        break;
+                    }
+                case "clearzombies":
+                    {
+                        AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                        int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                        if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                        {
+                            AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                            AddressChain tmp_ch;
+
+                            if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
+
+                            TryEffect(request,
+                            () => true,
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0x28).SetByte(1);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+                            },
+                            () => Connector.SendMessage($"{request.DisplayViewer} cleared all the zombies !"),
+                            null, true, "zombieshealth");
+                        }
+                        break;
+                    }
+                case "clearplants":
+                    {
+                        AddressChain plants_ptr = game_ch.Offset(0xC4);
+                        int nplants = game_ch.Offset(0xD4).GetInt();
+                        if (plants_ptr.GetInt() != 0 && nplants > 0)
+                        {
+                            AddressChain plants_ch = plants_ptr.Follow();
+                            AddressChain tmp_ch;
+
+                            TryEffect(request,
+                            () => true,
+                            () =>
+                            {
+                                tmp_ch = plants_ch;
+                                for (int i = 0; i < nplants;)
+                                {
+                                    AddressChain plant_is_dead_ch = tmp_ch.Offset(0x141);
+                                    if (plant_is_dead_ch.GetByte() == 0)
+                                    {
+                                        plant_is_dead_ch.SetByte(1);
+                                        i++;
+                                    }
+                                    tmp_ch = tmp_ch.Offset(PLANT_OBJECT_SIZE);
+                                }
+                                return true;
+                            },
+                            () => Connector.SendMessage($"{request.DisplayViewer} cleared all the plants !"),
+                            null, true, "plantshealth");
+                        }
+                        break;
+                    }
+                case "shufflecards":
+                    {
+                        AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+                        if (cards_ptr_ch.GetInt() != 0 && !cards.Any())
+                        {
+                            AddressChain cards_ch = cards_ptr_ch.Follow();
+                            int ncards = cards_ch.Offset(0x24).GetInt();
+
+                            TryEffect(request,
+                            () => true,
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards.Add(cards_ch.Offset(0x5C + i * 0x50).GetInt());
+                                }
+                                cards = cards.OrderBy(a => RNG.Next()).ToList();
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards_ch.Offset(0x5C + i * 0x50).SetInt(cards[i]);
+                                }
+                                cards.Clear();
+                                return true;
+                            },
+                            () => Connector.SendMessage($"{request.DisplayViewer} shuffled all your cards !"),
+                            null, true, "cards");
+                        }
+                        break;
+                    }
                 default:
                     Log.Message("Unsupported effect " + code[0]);
                     break;
@@ -914,6 +1056,34 @@ namespace CrowdControl.Games.Packs
             b[2] = (byte)(((long)data >> 16) & 0xFF);
             b[3] = (byte)(((long)data >> 24) & 0xFF);
             return b;
+        }
+
+        bool is_one_zombie_in_visible_range(AddressChain active_zombies_ch, int nactive_zombies)
+        {
+            bool res = false;
+            AddressChain tmp_ch = active_zombies_ch;
+            for (int i = 0; i < nactive_zombies; i++)
+            {
+                if (tmp_ch.Offset(0x8).GetInt() <= MIN_VISIBLE_X)
+                {
+                    res = true;
+                    break;
+                }
+                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+            }
+            return res;
+        }
+
+        bool is_zombie_out()
+        {
+            bool res = false;
+            AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+            int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+            if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+            {
+                res = is_one_zombie_in_visible_range(active_zombies_ptr.Follow(), nactive_zombies);
+            }
+            return res;
         }
     }
 }
