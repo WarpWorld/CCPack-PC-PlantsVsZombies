@@ -281,7 +281,7 @@ namespace CrowdControl.Games.Packs
                             return true;
 
                         }, TimeSpan.FromMilliseconds(500), false, "sun");
-                        act.WhenCompleted.Then(t =>
+                        act.WhenCompleted.Then(_ =>
                         {
                             sun_ch.SetInt(old_sun);
                             Connector.SendMessage("Infinite sun ended !");
@@ -338,7 +338,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "cooldown");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 Connector.SendMessage("No cooldown ended !");
                             });
@@ -381,7 +381,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "cooldown");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 for (int i = 0; i < ncards; i++)
                                 {
@@ -415,7 +415,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "cooldown");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 for (int i = 0; i < ncards; i++)
                                 {
@@ -442,7 +442,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "collision");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             collision_ch.SetByte(JNZ);
                             Connector.SendMessage("Planting back to normal !");
@@ -465,7 +465,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "collect");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             collect_ch.SetByte(JNZ_SHORT);
                             Connector.SendMessage("Auto collect ended !");
@@ -491,7 +491,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "zombieshealth");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             byte[] code = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00 };
                             invincible_zombies_ch.SetBytes(code);
@@ -515,7 +515,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             SetUShort(slow_bullets_ch, 0x7575);
                             Connector.SendMessage("Slow bullets ended !");
@@ -538,7 +538,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             SetUShort(high_gravity_bullets_ch, 0x2375);
                             Connector.SendMessage("Bullets gravity returned to normal !");
@@ -561,7 +561,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             SetUShort(backwards_bullets_ch, 0x2075);
                             Connector.SendMessage("Plants direction of shooting back to normal !");
@@ -584,7 +584,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             SetUShort(freeze_bullets_ch, 0x775);
                             Connector.SendMessage("Bullets are not frozen anymore !");
@@ -608,7 +608,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "plantshealth");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             byte[] t1 = { 0x29, 0x50, 0x40 };
                             byte[] t2 = { 0x83, 0x46, 0x40, 0xFC };
@@ -639,7 +639,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "zombieshealth");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             byte[] t1 = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
                             byte[] t2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00 };
@@ -679,7 +679,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "zombiessize");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 tmp_ch = active_zombies_ch;
                                 for (int i = 0; i < nactive_zombies; i++)
@@ -717,7 +717,7 @@ namespace CrowdControl.Games.Packs
                             },
                             TimeSpan.FromSeconds(EFFECT_DURATION), "cards");
 
-                            tim.WhenCompleted.Then(t =>
+                            tim.WhenCompleted.Then(_ =>
                             {
                                 for (int i = 0; i < ncards; i++)
                                 {
@@ -760,7 +760,7 @@ namespace CrowdControl.Games.Packs
                         },
                         TimeSpan.FromSeconds(EFFECT_DURATION), "zombiesspeed");
 
-                        tim.WhenCompleted.Then(t =>
+                        tim.WhenCompleted.Then(_ =>
                         {
                             byte[] t2 = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
                             zombies_speed_ch.SetBytes(t2);
@@ -792,7 +792,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "zombieslane");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 Connector.SendMessage("Zombies returned to their lanes !");
                             });
@@ -823,7 +823,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "zombiesinvisible");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 tmp_ch = active_zombies_ch;
                                 for (int i = 0; i < nactive_zombies; i++)
@@ -864,7 +864,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "zombiesposition");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 Connector.SendMessage("Teleporting zombies ended !");
                             });
@@ -897,7 +897,7 @@ namespace CrowdControl.Games.Packs
                                 return true;
 
                             }, TimeSpan.FromMilliseconds(500), false, "zombiesstatus");
-                            act.WhenCompleted.Then(t =>
+                            act.WhenCompleted.Then(_ =>
                             {
                                 tmp_ch = active_zombies_ch;
                                 for (int i = 0; i < nactive_zombies; i++)
@@ -985,7 +985,7 @@ namespace CrowdControl.Games.Packs
                                 {
                                     cards.Add(cards_ch.Offset(0x5C + i * 0x50).GetInt());
                                 }
-                                cards = cards.OrderBy(a => RNG.Next()).ToList();
+                                cards = cards.OrderBy(_ => RNG.Next()).ToList();
                                 for (int i = 0; i < ncards; i++)
                                 {
                                     cards_ch.Offset(0x5C + i * 0x50).SetInt(cards[i]);
