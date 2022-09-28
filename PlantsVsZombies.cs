@@ -8,14 +8,13 @@ using Log = CrowdControl.Common.Log;
 using ConnectorLib.Inject.AddressChaining;
 using ConnectorLib.Inject.Payload.DirectX;
 using ConnectorLib.Inject.VersionProfiles;
-using JetBrains.Annotations;
 using ConnectorType = CrowdControl.Common.ConnectorType;
 
 namespace CrowdControl.Games.Packs
 {
     public class PlantsVsZombies : InjectEffectPack
     {
-        public override Game Game { get; } = new Game(144, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
+        public override Game Game { get; } = new(144, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
 
         #region AddressChains
 
@@ -68,9 +67,9 @@ namespace CrowdControl.Games.Packs
 
         private long imagebase;
 
-        private List<int> original_max_cooldowns = new List<int>();
-        private List<int> new_max_cooldowns = new List<int>();
-        private List<int> cards = new List<int>();
+        private List<int> original_max_cooldowns = new();
+        private List<int> new_max_cooldowns = new();
+        private List<int> cards = new();
 
         byte[] free_space_size_addr;
 
@@ -103,12 +102,12 @@ namespace CrowdControl.Games.Packs
             BOTTOM = 4
         }
 
-        public PlantsVsZombies([NotNull] IPlayer player, [NotNull] Func<CrowdControlBlock, bool> responseHandler, [NotNull] Action<object> statusUpdateHandler)
+        public PlantsVsZombies(IPlayer player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler)
             : base(player, responseHandler, statusUpdateHandler)
         {
             VersionProfiles = new List<VersionProfile>
                               {
-                                  new VersionProfile("popcapgame1", InitGame, DeinitGame, null, Direct3DVersion.Direct3D9)
+                                  new("popcapgame1", InitGame, DeinitGame, null, Direct3DVersion.Direct3D9)
                               };
         }
 
@@ -199,35 +198,35 @@ namespace CrowdControl.Games.Packs
             {
                 List<Effect> result = new List<Effect>
                 {
-                    new Effect("Infinite Sun", "infinitesun"),
-                    new Effect("Give Sun", "sun_up", new []{"quantity9999"}),
-                    new Effect("Take Sun", "sun_down", new []{"quantity9999"}),
-                    new Effect("No Cooldown", "nocooldown"),
-                    new Effect("Increase Cooldown", "cooldown_up"),
-                    new Effect("Decrease Cooldown", "cooldown_down"),
-                    new Effect("Can't plant", "cantplant"),
-                    new Effect("Plant Anywhere", "plantanywhere"),
-                    new Effect("Auto Collect", "autocollect"),
-                    new Effect("Invincible Zombies", "invinciblezombies"),
-                    new Effect("Slow Bullets", "slowbullets"),
-                    new Effect("Fast Bullets", "fastbullets"),
-                    new Effect("High Gravity Bullets", "highgravitybullets"),
-                    new Effect("Backwards Bullets", "backwardsbullets"),
-                    new Effect("Freeze Bullets", "freezebullets"),
-                    new Effect("Invincible Plants", "invincibleplants"),
-                    new Effect("One Hit Kill", "onehitkill"),
-                    new Effect("Big Zombies", "zombiessize_big"),
-                    new Effect("Small Zombies", "zombiessize_small"),
-                    new Effect("Random Cards", "randomcards"),
-                    new Effect("Fast Zombies", "zombiesspeed_faster"),
-                    new Effect("Slow Zombies", "zombiesspeed_slower"),
-                    new Effect("Zombies in the middle", "zombiesmiddle"),
-                    new Effect("Invisible Zombies", "invisiblezombies"),
-                    new Effect("Teleport Zombies to House", "teleportzombies"),
-                    new Effect("Charm Zombies", "charmzombies"),
-                    new Effect("Clear Zombies", "clearzombies"),
-                    new Effect("Clear Plants", "clearplants"),
-                    new Effect("Shuffle Cards", "shufflecards"),
+                    new("Infinite Sun", "infinitesun"),
+                    new("Give Sun", "sun_up", new []{"quantity9999"}),
+                    new("Take Sun", "sun_down", new []{"quantity9999"}),
+                    new("No Cooldown", "nocooldown"),
+                    new("Increase Cooldown", "cooldown_up"),
+                    new("Decrease Cooldown", "cooldown_down"),
+                    new("Can't plant", "cantplant"),
+                    new("Plant Anywhere", "plantanywhere"),
+                    new("Auto Collect", "autocollect"),
+                    new("Invincible Zombies", "invinciblezombies"),
+                    new("Slow Bullets", "slowbullets"),
+                    new("Fast Bullets", "fastbullets"),
+                    new("High Gravity Bullets", "highgravitybullets"),
+                    new("Backwards Bullets", "backwardsbullets"),
+                    new("Freeze Bullets", "freezebullets"),
+                    new("Invincible Plants", "invincibleplants"),
+                    new("One Hit Kill", "onehitkill"),
+                    new("Big Zombies", "zombiessize_big"),
+                    new("Small Zombies", "zombiessize_small"),
+                    new("Random Cards", "randomcards"),
+                    new("Fast Zombies", "zombiesspeed_faster"),
+                    new("Slow Zombies", "zombiesspeed_slower"),
+                    new("Zombies in the middle", "zombiesmiddle"),
+                    new("Invisible Zombies", "invisiblezombies"),
+                    new("Teleport Zombies to House", "teleportzombies"),
+                    new("Charm Zombies", "charmzombies"),
+                    new("Clear Zombies", "clearzombies"),
+                    new("Clear Plants", "clearplants"),
+                    new("Shuffle Cards", "shufflecards"),
                 };
 
                 return result;
