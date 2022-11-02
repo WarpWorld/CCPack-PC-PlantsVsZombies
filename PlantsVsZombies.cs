@@ -50,8 +50,6 @@ namespace CrowdControl.Games.Packs
         private const int MIN_BIG_PERCENTAGE = 40;
         private const int MAX_BIG_PERCENTAGE = 70;
 
-        private const int EFFECT_DURATION = 15;
-
         private const int MAX_SUN = 9999;
 
         private const int MAX_USABLE_CARD = 39;
@@ -198,32 +196,32 @@ namespace CrowdControl.Games.Packs
             {
                 List<Effect> result = new List<Effect>
                 {
-                    new("Infinite Sun", "infinitesun"),
+                    new("Infinite Sun", "infinitesun") { Duration = TimeSpan.FromSeconds(15) },
                     new("Give Sun", "sun_up", new []{"quantity9999"}),
                     new("Take Sun", "sun_down", new []{"quantity9999"}),
-                    new("No Cooldown", "nocooldown"),
-                    new("Increase Cooldown", "cooldown_up"),
-                    new("Decrease Cooldown", "cooldown_down"),
-                    new("Can't plant", "cantplant"),
-                    new("Plant Anywhere", "plantanywhere"),
-                    new("Auto Collect", "autocollect"),
-                    new("Invincible Zombies", "invinciblezombies"),
-                    new("Slow Bullets", "slowbullets"),
-                    new("Fast Bullets", "fastbullets"),
-                    new("High Gravity Bullets", "highgravitybullets"),
-                    new("Backwards Bullets", "backwardsbullets"),
-                    new("Freeze Bullets", "freezebullets"),
-                    new("Invincible Plants", "invincibleplants"),
-                    new("One Hit Kill", "onehitkill"),
-                    new("Big Zombies", "zombiessize_big"),
-                    new("Small Zombies", "zombiessize_small"),
-                    new("Random Cards", "randomcards"),
-                    new("Fast Zombies", "zombiesspeed_faster"),
-                    new("Slow Zombies", "zombiesspeed_slower"),
-                    new("Zombies in the middle", "zombiesmiddle"),
-                    new("Invisible Zombies", "invisiblezombies"),
-                    new("Teleport Zombies to House", "teleportzombies"),
-                    new("Charm Zombies", "charmzombies"),
+                    new("No Cooldown", "nocooldown") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Increase Cooldown", "cooldown_up") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Decrease Cooldown", "cooldown_down") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Can't plant", "cantplant") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Plant Anywhere", "plantanywhere") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Auto Collect", "autocollect") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Invincible Zombies", "invinciblezombies") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Slow Bullets", "slowbullets") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Fast Bullets", "fastbullets") { Duration = TimeSpan.FromSeconds(15) },
+                    new("High Gravity Bullets", "highgravitybullets") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Backwards Bullets", "backwardsbullets") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Freeze Bullets", "freezebullets") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Invincible Plants", "invincibleplants") { Duration = TimeSpan.FromSeconds(15) },
+                    new("One Hit Kill", "onehitkill") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Big Zombies", "zombiessize_big") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Small Zombies", "zombiessize_small") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Random Cards", "randomcards") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Fast Zombies", "zombiesspeed_faster") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Slow Zombies", "zombiesspeed_slower") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Zombies in the middle", "zombiesmiddle") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Invisible Zombies", "invisiblezombies") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Teleport Zombies to House", "teleportzombies") { Duration = TimeSpan.FromSeconds(15) },
+                    new("Charm Zombies", "charmzombies") { Duration = TimeSpan.FromSeconds(15) },
                     new("Clear Zombies", "clearzombies"),
                     new("Clear Plants", "clearplants"),
                     new("Shuffle Cards", "shufflecards"),
@@ -271,7 +269,7 @@ namespace CrowdControl.Games.Packs
                     {
                         AddressChain sun_ch = game_ch.Offset(0x5578);
                         int old_sun = sun_ch.GetInt();
-                        var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                        var act = RepeatAction(request,
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} gave you infinite sun !"), TimeSpan.FromSeconds(1),
                         () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -325,7 +323,7 @@ namespace CrowdControl.Games.Packs
                             AddressChain cards_ch = cards_ptr_ch.Follow();
                             int ncards = cards_ch.Offset(0x24).GetInt();
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request, 
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} gave you no cooldown !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -355,7 +353,7 @@ namespace CrowdControl.Games.Packs
 
                             bool is_up = string.Equals(code[1], "up");
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request, 
                             () => true,
                             () => 
                             {
@@ -402,7 +400,7 @@ namespace CrowdControl.Games.Packs
                             AddressChain cards_ch = cards_ptr_ch.Follow();
                             int ncards = cards_ch.Offset(0x24).GetInt();
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request, 
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} made you unable to plant !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -440,7 +438,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} allowed you to plant anywhere !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "collision");
+                        "collision");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -463,7 +461,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} gave you auto collect !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "collect");
+                        "collect");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -489,7 +487,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} made zombies invincible !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "zombieshealth");
+                        "zombieshealth");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -513,7 +511,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} made bullets slow !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
+                        "bullets");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -536,7 +534,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} increased the gravity on bullets !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
+                        "bullets");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -559,7 +557,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} made plants to shoot backwards !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
+                        "bullets");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -582,7 +580,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} froze the bullets !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "bullets");
+                         "bullets");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -606,7 +604,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} made plants invincible !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "plantshealth");
+                        "plantshealth");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -637,7 +635,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} made every zombie to die in one hit !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "zombieshealth");
+                        "zombieshealth");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -664,7 +662,7 @@ namespace CrowdControl.Games.Packs
 
                             if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return ;  }
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request,
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} made all zombies " + (is_big ? "bigger" : "smaller") +  " !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -715,7 +713,7 @@ namespace CrowdControl.Games.Packs
                                 Connector.SendMessage($"{request.DisplayViewer} changed all your cards !");
                                 return true;
                             },
-                            TimeSpan.FromSeconds(EFFECT_DURATION), "cards");
+                            "cards");
 
                             tim.WhenCompleted.Then(_ =>
                             {
@@ -758,7 +756,7 @@ namespace CrowdControl.Games.Packs
                             Connector.SendMessage($"{request.DisplayViewer} made zombies" + code[1] + " !");
                             return true;
                         },
-                        TimeSpan.FromSeconds(EFFECT_DURATION), "zombiesspeed");
+                        "zombiesspeed");
 
                         tim.WhenCompleted.Then(_ =>
                         {
@@ -777,7 +775,7 @@ namespace CrowdControl.Games.Packs
                             AddressChain active_zombies_ch = active_zombies_ptr.Follow();
                             AddressChain tmp_ch;
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request, 
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} made all zombies to go to the middle !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -808,7 +806,7 @@ namespace CrowdControl.Games.Packs
                             AddressChain active_zombies_ch = active_zombies_ptr.Follow();
                             AddressChain tmp_ch;
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request,
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} made all zombies invisible !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -845,7 +843,7 @@ namespace CrowdControl.Games.Packs
                             AddressChain active_zombies_ch = active_zombies_ptr.Follow();
                             AddressChain tmp_ch;
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request,
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} teleported all zombies to your house !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
@@ -882,7 +880,7 @@ namespace CrowdControl.Games.Packs
 
                             if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
 
-                            var act = RepeatAction(request, TimeSpan.FromSeconds(EFFECT_DURATION),
+                            var act = RepeatAction(request, 
                             () => true,
                             () => Connector.SendMessage($"{request.DisplayViewer} charmed all the zombies !"), TimeSpan.FromSeconds(1),
                             () => is_not_paused(), TimeSpan.FromMilliseconds(500),
