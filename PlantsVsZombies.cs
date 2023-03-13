@@ -100,7 +100,7 @@ namespace CrowdControl.Games.Packs
             BOTTOM = 4
         }
 
-        public PlantsVsZombies(Player player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler)
+        public PlantsVsZombies(UserRecord player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler)
             : base(player, responseHandler, statusUpdateHandler)
         {
             VersionProfiles = new List<VersionProfile>
