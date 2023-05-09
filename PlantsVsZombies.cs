@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Linq;
 using ConnectorLib;
@@ -12,9 +13,10 @@ using ConnectorType = CrowdControl.Common.ConnectorType;
 
 namespace CrowdControl.Games.Packs;
 
+[SuppressMessage("ReSharper", "StringLiteralTypo")]
 public class PlantsVsZombies : InjectEffectPack
 {
-    public override Game Game { get; } = new(144, "Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
+    public override Game Game { get; } = new("Plants vs Zombies", "PlantsVsZombies", "PC", ConnectorType.PCConnector);
 
     #region AddressChains
 
@@ -246,12 +248,7 @@ public class PlantsVsZombies : InjectEffectPack
 
     protected override void StartEffect(EffectRequest request)
     {
-        if (!IsReady(request))
-        {
-            return;
-        }
-
-        if (!is_not_paused())
+        if (!(IsReady(request) && is_not_paused()))
         {
             DelayEffect(request);
             return;
@@ -267,7 +264,7 @@ public class PlantsVsZombies : InjectEffectPack
                 var act = RepeatAction(request,
                     () => true,
                     () => Connector.SendMessage($"{request.DisplayViewer} gave you infinite sun !"), TimeSpan.FromSeconds(1),
-                    () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                    is_not_paused, TimeSpan.FromMilliseconds(500),
                     () =>
                     {
                         game_ch.Offset(0x5578).SetInt(MAX_SUN);
@@ -321,7 +318,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request, 
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} gave you no cooldown !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             for (int i = 0; i < ncards; i++)
@@ -364,7 +361,7 @@ public class PlantsVsZombies : InjectEffectPack
                             return true;
                         }
                         , TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             for (int i = 0; i < ncards; i++)
@@ -398,7 +395,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request, 
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} made you unable to plant !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             for (int i = 0; i < ncards; i++)
@@ -425,7 +422,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -448,7 +445,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -473,7 +470,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -498,7 +495,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -521,7 +518,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -544,7 +541,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -567,7 +564,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -590,7 +587,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -617,7 +614,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -660,7 +657,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request,
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} made all zombies " + (is_big ? "bigger" : "smaller") +  " !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             tmp_ch = active_zombies_ch;
@@ -695,7 +692,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                     var tim = StartTimed(request,
                         () => true,
-                        () => is_not_paused(),
+                        is_not_paused,
                         TimeSpan.FromMilliseconds(500),
                         () =>
                         {
@@ -743,7 +740,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                 var tim = StartTimed(request,
                     () => true,
-                    () => is_not_paused(),
+                    is_not_paused,
                     TimeSpan.FromMilliseconds(500),
                     () =>
                     {
@@ -773,7 +770,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request, 
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} made all zombies to go to the middle !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             tmp_ch = active_zombies_ch;
@@ -804,7 +801,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request,
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} made all zombies invisible !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             tmp_ch = active_zombies_ch;
@@ -841,7 +838,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request,
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} teleported all zombies to your house !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             tmp_ch = active_zombies_ch;
@@ -878,7 +875,7 @@ public class PlantsVsZombies : InjectEffectPack
                     var act = RepeatAction(request, 
                         () => true,
                         () => Connector.SendMessage($"{request.DisplayViewer} charmed all the zombies !"), TimeSpan.FromSeconds(1),
-                        () => is_not_paused(), TimeSpan.FromMilliseconds(500),
+                        is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
                             tmp_ch = active_zombies_ch;
@@ -996,13 +993,6 @@ public class PlantsVsZombies : InjectEffectPack
                 break;
         }
     }
-
-    protected override bool StopEffect(EffectRequest request)
-    {
-        return true;
-    }
-
-    protected override void RequestData(DataRequest request) => Respond(request, request.Key, null, false, $"Variable name \"{request.Key}\" not known.");
 
     protected short GetShort(AddressChain ch)
     {
