@@ -44,7 +44,7 @@ public class PlantsVsZombies : InjectEffectPack
     private const byte JMP = 0xEB;
     private const byte NOP = 0x90;
     private const ushort NOP_NOP = 0x9090;
-    private byte[] NOP_NOP_NOP = { 0x90, 0x90, 0x90 };
+    private readonly byte[] NOP_NOP_NOP = { 0x90, 0x90, 0x90 };
     private const int NOP_NOP_NOP_NOP = -1869574000;
 
     private const int MIN_PERCENTAGE = 10;
@@ -67,8 +67,8 @@ public class PlantsVsZombies : InjectEffectPack
 
     private long imagebase;
 
-    private List<int> original_max_cooldowns = new();
-    private List<int> new_max_cooldowns = new();
+    private readonly List<int> original_max_cooldowns = new();
+    private readonly List<int> new_max_cooldowns = new();
     private List<int> cards = new();
 
     byte[] free_space_size_addr;
@@ -192,46 +192,38 @@ public class PlantsVsZombies : InjectEffectPack
     #endregion
 
     #region Effect List
-    public override EffectList Effects
-    {
-        get
+    public override EffectList Effects => new List<Effect>
         {
-            List<Effect> result = new List<Effect>
-            {
-                new("Infinite Sun", "infinitesun") { Duration = TimeSpan.FromSeconds(15) },
-                new("Give Sun", "sun_up") { Quantity = 9999 },
-                new("Take Sun", "sun_down") { Quantity = 9999 },
-                new("No Cooldown", "nocooldown") { Duration = TimeSpan.FromSeconds(15) },
-                new("Increase Cooldown", "cooldown_up") { Duration = TimeSpan.FromSeconds(15) },
-                new("Decrease Cooldown", "cooldown_down") { Duration = TimeSpan.FromSeconds(15) },
-                new("Can't plant", "cantplant") { Duration = TimeSpan.FromSeconds(15) },
-                new("Plant Anywhere", "plantanywhere") { Duration = TimeSpan.FromSeconds(15) },
-                new("Auto Collect", "autocollect") { Duration = TimeSpan.FromSeconds(15) },
-                new("Invincible Zombies", "invinciblezombies") { Duration = TimeSpan.FromSeconds(15) },
-                new("Slow Bullets", "slowbullets") { Duration = TimeSpan.FromSeconds(15) },
-                new("Fast Bullets", "fastbullets") { Duration = TimeSpan.FromSeconds(15) },
-                new("High Gravity Bullets", "highgravitybullets") { Duration = TimeSpan.FromSeconds(15) },
-                new("Backwards Bullets", "backwardsbullets") { Duration = TimeSpan.FromSeconds(15) },
-                new("Freeze Bullets", "freezebullets") { Duration = TimeSpan.FromSeconds(15) },
-                new("Invincible Plants", "invincibleplants") { Duration = TimeSpan.FromSeconds(15) },
-                new("One Hit Kill", "onehitkill") { Duration = TimeSpan.FromSeconds(15) },
-                new("Big Zombies", "zombiessize_big") { Duration = TimeSpan.FromSeconds(15) },
-                new("Small Zombies", "zombiessize_small") { Duration = TimeSpan.FromSeconds(15) },
-                new("Random Cards", "randomcards") { Duration = TimeSpan.FromSeconds(15) },
-                new("Fast Zombies", "zombiesspeed_faster") { Duration = TimeSpan.FromSeconds(15) },
-                new("Slow Zombies", "zombiesspeed_slower") { Duration = TimeSpan.FromSeconds(15) },
-                new("Zombies in the middle", "zombiesmiddle") { Duration = TimeSpan.FromSeconds(15) },
-                new("Invisible Zombies", "invisiblezombies") { Duration = TimeSpan.FromSeconds(15) },
-                new("Teleport Zombies to House", "teleportzombies") { Duration = TimeSpan.FromSeconds(15) },
-                new("Charm Zombies", "charmzombies") { Duration = TimeSpan.FromSeconds(15) },
-                new("Clear Zombies", "clearzombies"),
-                new("Clear Plants", "clearplants"),
-                new("Shuffle Cards", "shufflecards"),
-            };
-
-            return result;
-        }
-    }
+            new("Infinite Sun", "infinitesun") { Duration = TimeSpan.FromSeconds(15) },
+            new("Give Sun", "sun_up") { Quantity = 9999 },
+            new("Take Sun", "sun_down") { Quantity = 9999 },
+            new("No Cooldown", "nocooldown") { Duration = TimeSpan.FromSeconds(15) },
+            new("Increase Cooldown", "cooldown_up") { Duration = TimeSpan.FromSeconds(15) },
+            new("Decrease Cooldown", "cooldown_down") { Duration = TimeSpan.FromSeconds(15) },
+            new("Can't plant", "cantplant") { Duration = TimeSpan.FromSeconds(15) },
+            new("Plant Anywhere", "plantanywhere") { Duration = TimeSpan.FromSeconds(15) },
+            new("Auto Collect", "autocollect") { Duration = TimeSpan.FromSeconds(15) },
+            new("Invincible Zombies", "invinciblezombies") { Duration = TimeSpan.FromSeconds(15) },
+            new("Slow Bullets", "slowbullets") { Duration = TimeSpan.FromSeconds(15) },
+            new("Fast Bullets", "fastbullets") { Duration = TimeSpan.FromSeconds(15) },
+            new("High Gravity Bullets", "highgravitybullets") { Duration = TimeSpan.FromSeconds(15) },
+            new("Backwards Bullets", "backwardsbullets") { Duration = TimeSpan.FromSeconds(15) },
+            new("Freeze Bullets", "freezebullets") { Duration = TimeSpan.FromSeconds(15) },
+            new("Invincible Plants", "invincibleplants") { Duration = TimeSpan.FromSeconds(15) },
+            new("One Hit Kill", "onehitkill") { Duration = TimeSpan.FromSeconds(15) },
+            new("Big Zombies", "zombiessize_big") { Duration = TimeSpan.FromSeconds(15) },
+            new("Small Zombies", "zombiessize_small") { Duration = TimeSpan.FromSeconds(15) },
+            new("Random Cards", "randomcards") { Duration = TimeSpan.FromSeconds(15) },
+            new("Fast Zombies", "zombiesspeed_faster") { Duration = TimeSpan.FromSeconds(15) },
+            new("Slow Zombies", "zombiesspeed_slower") { Duration = TimeSpan.FromSeconds(15) },
+            new("Zombies in the middle", "zombiesmiddle") { Duration = TimeSpan.FromSeconds(15) },
+            new("Invisible Zombies", "invisiblezombies") { Duration = TimeSpan.FromSeconds(15) },
+            new("Teleport Zombies to House", "teleportzombies") { Duration = TimeSpan.FromSeconds(15) },
+            new("Charm Zombies", "charmzombies") { Duration = TimeSpan.FromSeconds(15) },
+            new("Clear Zombies", "clearzombies"),
+            new("Clear Plants", "clearplants"),
+            new("Shuffle Cards", "shufflecards"),
+        };
 
     #endregion
 
