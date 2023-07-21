@@ -10,6 +10,7 @@ using ConnectorLib.Inject.AddressChaining;
 using ConnectorLib.Inject.Payload.DirectX;
 using ConnectorLib.Inject.VersionProfiles;
 using ConnectorType = CrowdControl.Common.ConnectorType;
+using CrowdControl.Games.SpecialConnectors;
 
 namespace CrowdControl.Games.Packs;
 
@@ -250,437 +251,167 @@ public class PlantsVsZombies : InjectEffectPack
         switch (code[0])
         {
             case "infinitesun":
-            {
-                AddressChain sun_ch = game_ch.Offset(0x5578);
-                int old_sun = sun_ch.GetInt();
-                var act = RepeatAction(request,
-                    () => true,
-                    () => Connector.SendMessage($"{request.DisplayViewer} gave you infinite sun !"), TimeSpan.FromSeconds(1),
-                    is_not_paused, TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        game_ch.Offset(0x5578).SetInt(MAX_SUN);
-                        return true;
-
-                    }, TimeSpan.FromMilliseconds(500), false, "sun");
-                act.WhenCompleted.Then(_ =>
                 {
-                    sun_ch.SetInt(old_sun);
-                    Connector.SendMessage("Infinite sun ended !");
-                });
-                break;
-            }
-            case "sun":
-            {
-                if (!int.TryParse(code[2], out int quantity))
-                {
-                    Respond(request, EffectStatus.FailTemporary, "Invalid quantity");
-                    break;
-                }
-
-                bool give = !string.Equals(code[1], "down");
-                if (!give) quantity *= -1;
-
-                AddressChain sun_ch = game_ch.Offset(0x5578);
-                int sun = sun_ch.GetInt();
-                if ((give && sun == MAX_SUN) || (!give && sun == 0)) { DelayEffect(request); return; }
-
-                TryEffect(request,
-                    () => true,
-                    () =>
-                    {
-                        int new_sun = sun + quantity;
-                        if (new_sun > MAX_SUN) { new_sun = MAX_SUN; }
-                        else if (new_sun < 0) { new_sun = 0; }
-                        sun_ch.SetInt(new_sun);
-                        return true;
-                    },
-                    () => Connector.SendMessage($"{request.DisplayViewer} {(give ? "sent" : "took")} {Math.Abs(quantity)} units of sun."),
-                    null, true, "sun");
-                break;
-            }
-            case "nocooldown":
-            {
-                AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
-                if (cards_ptr_ch.GetInt() != 0)
-                {
-                    AddressChain cards_ch = cards_ptr_ch.Follow();
-                    int ncards = cards_ch.Offset(0x24).GetInt();
-
-                    var act = RepeatAction(request, 
-                        () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} gave you no cooldown !"), TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
-                        () =>
-                        {
-                            for (int i = 0; i < ncards; i++)
-                            {
-                                cards_ch.Offset(0x4C + i * 0x50).SetInt(cards_ch.Offset(0x4C + i * 0x50 + 4).GetInt()); // cooldown = maxcooldown
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "cooldown");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        Connector.SendMessage("No cooldown ended !");
-                    });
-                }
-                break;
-            }
-            case "cooldown":
-            {
-                AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
-                if (cards_ptr_ch.GetInt() != 0 && !original_max_cooldowns.Any() && !new_max_cooldowns.Any())
-                {
-                    AddressChain cards_ch = cards_ptr_ch.Follow();
-                    int ncards = cards_ch.Offset(0x24).GetInt();
-
-                    bool is_up = string.Equals(code[1], "up");
-
-                    var act = RepeatAction(request, 
-                        () => true,
-                        () => 
-                        {
-                            for (int i = 0; i < ncards; i++)
-                            {
-                                int max_cooldown = cards_ch.Offset(0x50 + i * 0x50).GetInt();
-                                original_max_cooldowns.Add(max_cooldown);
-                                int new_cooldown;
-                                if (is_up) { new_cooldown = max_cooldown + random_big_percentage(max_cooldown); } else { new_cooldown = max_cooldown - random_big_percentage(max_cooldown); }
-                                new_max_cooldowns.Add(new_cooldown);
-                            }
-                            Connector.SendMessage($"{request.DisplayViewer} increased your cooldown !");
-                            return true;
-                        }
-                        , TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
-                        () =>
-                        {
-                            for (int i = 0; i < ncards; i++)
-                            {
-                                cards_ch.Offset(0x50 + i * 0x50).SetInt(new_max_cooldowns[i]);
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "cooldown");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        for (int i = 0; i < ncards; i++)
-                        {
-                            cards_ch.Offset(0x50 + i * 0x50).SetInt(original_max_cooldowns[i]);
-                        }
-                        original_max_cooldowns.Clear();
-                        new_max_cooldowns.Clear();
-                        Connector.SendMessage("Cooldown back to normal !");
-                    });
-                }
-                break;
-            }
-            case "cantplant":
-            {
-                AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
-                if (cards_ptr_ch.GetInt() != 0)
-                {
-                    AddressChain cards_ch = cards_ptr_ch.Follow();
-                    int ncards = cards_ch.Offset(0x24).GetInt();
-
-                    var act = RepeatAction(request, 
-                        () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} made you unable to plant !"), TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
-                        () =>
-                        {
-                            for (int i = 0; i < ncards; i++)
-                            {
-                                cards_ch.Offset(0x70 + i * 0x50).SetInt((int)CARD_STATUS.SELECTED);
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "cooldown");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        for (int i = 0; i < ncards; i++)
-                        {
-                            cards_ch.Offset(0x70 + i * 0x50).SetInt((int)CARD_STATUS.READY);
-                        }
-                        Connector.SendMessage("Can't plant ended !");
-                    });
-                }
-                break;
-            }
-            case "plantanywhere":
-            {
-                if (collision_ch.GetByte() == JZ) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        collision_ch.SetByte(JZ);
-                        Connector.SendMessage($"{request.DisplayViewer} allowed you to plant anywhere !");
-                        return true;
-                    },
-                    "collision");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    collision_ch.SetByte(JNZ);
-                    Connector.SendMessage("Planting back to normal !");
-                });
-                break;
-            }
-            case "autocollect":
-            {
-                if (collect_ch.GetByte() == JMP) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        collect_ch.SetByte(JMP);
-                        Connector.SendMessage($"{request.DisplayViewer} gave you auto collect !");
-                        return true;
-                    },
-                    "collect");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    collect_ch.SetByte(JNZ_SHORT);
-                    Connector.SendMessage("Auto collect ended !");
-                });
-                break;
-            }
-            case "invinciblezombies":
-            {
-                if (invincible_zombies_ch.GetByte() == NOP) { DelayEffect(request); return; }
-
-                if (!is_zombie_out()) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        byte[] nops = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-                        invincible_zombies_ch.SetBytes(nops);
-                        Connector.SendMessage($"{request.DisplayViewer} made zombies invincible !");
-                        return true;
-                    },
-                    "zombieshealth");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    byte[] code = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00 };
-                    invincible_zombies_ch.SetBytes(code);
-                    Connector.SendMessage("Invincible zombies ended !");
-                });
-                break;
-            }
-            case "slowbullets":
-            {
-                if (GetUShort(slow_bullets_ch) == NOP_NOP) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        SetUShort(slow_bullets_ch, NOP_NOP);
-                        Connector.SendMessage($"{request.DisplayViewer} made bullets slow !");
-                        return true;
-                    },
-                    "bullets");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    SetUShort(slow_bullets_ch, 0x7575);
-                    Connector.SendMessage("Slow bullets ended !");
-                });
-                break;
-            }
-            case "highgravitybullets":
-            {
-                if (high_gravity_bullets_ch.GetByte() == NOP) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        SetUShort(high_gravity_bullets_ch, NOP_NOP);
-                        Connector.SendMessage($"{request.DisplayViewer} increased the gravity on bullets !");
-                        return true;
-                    },
-                    "bullets");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    SetUShort(high_gravity_bullets_ch, 0x2375);
-                    Connector.SendMessage("Bullets gravity returned to normal !");
-                });
-                break;
-            }
-            case "backwardsbullets":
-            {
-                if (backwards_bullets_ch.GetByte() == NOP) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        SetUShort(backwards_bullets_ch, NOP_NOP);
-                        Connector.SendMessage($"{request.DisplayViewer} made plants to shoot backwards !");
-                        return true;
-                    },
-                    "bullets");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    SetUShort(backwards_bullets_ch, 0x2075);
-                    Connector.SendMessage("Plants direction of shooting back to normal !");
-                });
-                break;
-            }
-            case "freezebullets":
-            {
-                if (freeze_bullets_ch.GetByte() == NOP) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        SetUShort(freeze_bullets_ch, NOP_NOP);
-                        Connector.SendMessage($"{request.DisplayViewer} froze the bullets !");
-                        return true;
-                    },
-                    "bullets");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    SetUShort(freeze_bullets_ch, 0x775);
-                    Connector.SendMessage("Bullets are not frozen anymore !");
-                });
-                break;
-            }
-            case "invincibleplants":
-            {
-                if (invincible_plants_ch1.GetByte() == NOP) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        invincible_plants_ch1.SetBytes(NOP_NOP_NOP);
-                        invincible_plants_ch2.SetInt(NOP_NOP_NOP_NOP);
-                        Connector.SendMessage($"{request.DisplayViewer} made plants invincible !");
-                        return true;
-                    },
-                    "plantshealth");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    byte[] t1 = { 0x29, 0x50, 0x40 };
-                    byte[] t2 = { 0x83, 0x46, 0x40, 0xFC };
-                    invincible_plants_ch1.SetBytes(t1);
-                    invincible_plants_ch2.SetBytes(t2);
-                    Connector.SendMessage("Plants are not invincible anymore !");
-                });
-                break;
-            }
-            case "onehitkill":
-            {
-                if (one_hit_kill_ch1.GetByte() == 0x33) { DelayEffect(request); return; }
-
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        byte[] t1 = { 0x33, 0xED, 0x90, 0x90, 0x90, 0x90 }; // xor ebp, ebp
-                        byte[] t2 = { 0x33, 0xC9, 0x90, 0x90, 0x90, 0x90 }; // xor ecx, ecx
-                        byte[] t3 = { 0x33, 0xFF, 0x89, 0xBE, 0xDC, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90 }; // xor edi, edi | mov dword ptr ds:[esi+dc], edi
-                        one_hit_kill_ch1.SetBytes(t1);
-                        one_hit_kill_ch2.SetBytes(t2);
-                        one_hit_kill_ch3.SetBytes(t3);
-                        Connector.SendMessage($"{request.DisplayViewer} made every zombie to die in one hit !");
-                        return true;
-                    },
-                    "zombieshealth");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    byte[] t1 = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
-                    byte[] t2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00 };
-                    byte[] t3 = { 0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00 };
-                    one_hit_kill_ch1.SetBytes(t1);
-                    one_hit_kill_ch2.SetBytes(t2);
-                    one_hit_kill_ch3.SetBytes(t3);
-                    Connector.SendMessage("One Hit Kill off !");
-                });
-                break;
-            }
-            case "zombiessize":
-            {
-                AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
-                int nactive_zombies = game_ch.Offset(0xAC).GetInt();
-                if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
-                {
-                    bool is_big = string.Equals(code[1], "big");
-
-                    AddressChain active_zombies_ch = active_zombies_ptr.Follow();
-                    AddressChain tmp_ch;
-
-                    if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return ;  }
-
+                    AddressChain sun_ch = game_ch.Offset(0x5578);
+                    int old_sun = sun_ch.GetInt();
                     var act = RepeatAction(request,
                         () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} made all zombies " + (is_big ? "bigger" : "smaller") +  " !"), TimeSpan.FromSeconds(1),
+                        () => Connector.SendMessage($"{request.DisplayViewer} gave you infinite sun."), TimeSpan.FromSeconds(1),
                         is_not_paused, TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            tmp_ch = active_zombies_ch;
-                            for (int i = 0; i < nactive_zombies; i++)
-                            {
-                                tmp_ch.Offset(0x11C).SetFloat(is_big ? SIZE_BIG : SIZE_SMALL);
-                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                            }
+                            game_ch.Offset(0x5578).SetInt(MAX_SUN);
                             return true;
 
-                        }, TimeSpan.FromMilliseconds(500), false, "zombiessize");
+                        }, TimeSpan.FromMilliseconds(500), false, "sun");
                     act.WhenCompleted.Then(_ =>
                     {
-                        tmp_ch = active_zombies_ch;
-                        for (int i = 0; i < nactive_zombies; i++)
-                        {
-                            tmp_ch.Offset(0x11C).SetFloat(SIZE_NORMAL);
-                            tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                        }
-                        Connector.SendMessage("Zombies size returned to normal !");
+                        sun_ch.SetInt(old_sun);
+                        Connector.SendMessage("Infinite sun ended.");
                     });
+                    break;
                 }
-                break;
-            }
-            case "randomcards":
-            {
-                AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
-                if (cards_ptr_ch.GetInt() != 0 && !cards.Any())
+            case "sun":
                 {
-                    AddressChain cards_ch = cards_ptr_ch.Follow();
-                    int ncards = cards_ch.Offset(0x24).GetInt();
+                    if (!int.TryParse(code[2], out int quantity))
+                    {
+                        Respond(request, EffectStatus.FailTemporary, "Invalid quantity");
+                        break;
+                    }
+
+                    bool give = !string.Equals(code[1], "down");
+                    if (!give) quantity *= -1;
+
+                    AddressChain sun_ch = game_ch.Offset(0x5578);
+                    int sun = sun_ch.GetInt();
+                    if ((give && sun == MAX_SUN) || (!give && sun == 0)) { DelayEffect(request); return; }
+
+                    TryEffect(request,
+                        () => true,
+                        () =>
+                        {
+                            int new_sun = sun + quantity;
+                            if (new_sun > MAX_SUN) { new_sun = MAX_SUN; }
+                            else if (new_sun < 0) { new_sun = 0; }
+                            sun_ch.SetInt(new_sun);
+                            return true;
+                        },
+                        () => Connector.SendMessage($"{request.DisplayViewer} {(give ? "sent" : "took")} {Math.Abs(quantity)} units of sun."),
+                        null, true, "sun");
+                    break;
+                }
+            case "nocooldown":
+                {
+                    AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+                    if (cards_ptr_ch.GetInt() != 0)
+                    {
+                        AddressChain cards_ch = cards_ptr_ch.Follow();
+                        int ncards = cards_ch.Offset(0x24).GetInt();
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} gave you no cooldown."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards_ch.Offset(0x4C + i * 0x50).SetInt(cards_ch.Offset(0x4C + i * 0x50 + 4).GetInt()); // cooldown = maxcooldown
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "cooldown");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            Connector.SendMessage("No cooldown ended.");
+                        });
+                    }
+                    break;
+                }
+            case "cooldown":
+                {
+                    AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+                    if (cards_ptr_ch.GetInt() != 0 && !original_max_cooldowns.Any() && !new_max_cooldowns.Any())
+                    {
+                        AddressChain cards_ch = cards_ptr_ch.Follow();
+                        int ncards = cards_ch.Offset(0x24).GetInt();
+
+                        bool is_up = string.Equals(code[1], "up");
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    int max_cooldown = cards_ch.Offset(0x50 + i * 0x50).GetInt();
+                                    original_max_cooldowns.Add(max_cooldown);
+                                    int new_cooldown;
+                                    if (is_up) { new_cooldown = max_cooldown + random_big_percentage(max_cooldown); } else { new_cooldown = max_cooldown - random_big_percentage(max_cooldown); }
+                                    new_max_cooldowns.Add(new_cooldown);
+                                }
+                                Connector.SendMessage($"{request.DisplayViewer} increased your cooldown.");
+                                return true;
+                            }
+                            , TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards_ch.Offset(0x50 + i * 0x50).SetInt(new_max_cooldowns[i]);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "cooldown");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            for (int i = 0; i < ncards; i++)
+                            {
+                                cards_ch.Offset(0x50 + i * 0x50).SetInt(original_max_cooldowns[i]);
+                            }
+                            original_max_cooldowns.Clear();
+                            new_max_cooldowns.Clear();
+                            Connector.SendMessage("Cooldown back to normal.");
+                        });
+                    }
+                    break;
+                }
+            case "cantplant":
+                {
+                    AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+                    if (cards_ptr_ch.GetInt() != 0)
+                    {
+                        AddressChain cards_ch = cards_ptr_ch.Follow();
+                        int ncards = cards_ch.Offset(0x24).GetInt();
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} made you unable to plant."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards_ch.Offset(0x70 + i * 0x50).SetInt((int)CARD_STATUS.SELECTED);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "cooldown");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            for (int i = 0; i < ncards; i++)
+                            {
+                                cards_ch.Offset(0x70 + i * 0x50).SetInt((int)CARD_STATUS.READY);
+                            }
+                            Connector.SendMessage("Can't plant ended.");
+                        });
+                    }
+                    break;
+                }
+            case "plantanywhere":
+                {
+                    if (collision_ch.GetByte() == JZ) { DelayEffect(request); return; }
 
                     var tim = StartTimed(request,
                         () => true,
@@ -688,311 +419,665 @@ public class PlantsVsZombies : InjectEffectPack
                         TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            for (int i = 0; i < ncards; i++)
-                            {
-                                AddressChain card_type = cards_ch.Offset(0x5C + i * 0x50);
-                                cards.Add(card_type.GetInt());
-                                card_type.SetInt(RNG.Next(0, MAX_USABLE_CARD));
-                            }
-                            Connector.SendMessage($"{request.DisplayViewer} changed all your cards !");
+                            collision_ch.SetByte(JZ);
+                            Connector.SendMessage($"{request.DisplayViewer} allowed you to plant anywhere.");
                             return true;
                         },
-                        "cards");
+                        "collision");
 
                     tim.WhenCompleted.Then(_ =>
                     {
-                        for (int i = 0; i < ncards; i++)
-                        {
-                            cards_ch.Offset(0x5C + i * 0x50).SetInt(cards[i]);
-                        }
-                        cards.Clear();
-                        Connector.SendMessage("Cards returned to normal !");
+                        collision_ch.SetByte(JNZ);
+                        Connector.SendMessage("Planting back to normal.");
                     });
+                    break;
                 }
-                break;
-            }
-            case "zombiesspeed":
-            {
-                if (zombies_speed_ch.GetByte() == 0xC7) { DelayEffect(request); return; }
-
-                if (!is_zombie_out()) { DelayEffect(request); return; }
-
-                byte[] t1 = { 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
-                switch (code[1])
+            case "autocollect":
                 {
-                    case "faster": // 50.0
-                        t1[5] = 0x48;
-                        t1[6] = 0x42;
-                        break;
-                    case "slower": // 5.0
-                        t1[5] = 0xA;
-                        t1[6] = 0x40;
-                        break;
-                }
+                    if (collect_ch.GetByte() == JMP) { DelayEffect(request); return; }
 
-                var tim = StartTimed(request,
-                    () => true,
-                    is_not_paused,
-                    TimeSpan.FromMilliseconds(500),
-                    () =>
-                    {
-                        zombies_speed_ch.SetBytes(t1);
-                        Connector.SendMessage($"{request.DisplayViewer} made zombies" + code[1] + " !");
-                        return true;
-                    },
-                    "zombiesspeed");
-
-                tim.WhenCompleted.Then(_ =>
-                {
-                    byte[] t2 = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
-                    zombies_speed_ch.SetBytes(t2);
-                    Connector.SendMessage("Zombies speed returned back to normal !");
-                });
-                break;
-            }
-            case "zombiesmiddle":
-            {
-                AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
-                int nactive_zombies = game_ch.Offset(0xAC).GetInt();
-                if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
-                {
-                    AddressChain active_zombies_ch = active_zombies_ptr.Follow();
-                    AddressChain tmp_ch;
-
-                    var act = RepeatAction(request, 
+                    var tim = StartTimed(request,
                         () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} made all zombies to go to the middle !"), TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            tmp_ch = active_zombies_ch;
-                            for (int i = 0; i < nactive_zombies; i++)
-                            {
-                                tmp_ch.Offset(0x1C).SetInt((int)LANE.CENTER);
-                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "zombieslane");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        Connector.SendMessage("Zombies returned to their lanes !");
-                    });
-                }
-                break;
-            }
-            case "invisiblezombies":
-            {
-                AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
-                int nactive_zombies = game_ch.Offset(0xAC).GetInt();
-                if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
-                {
-                    AddressChain active_zombies_ch = active_zombies_ptr.Follow();
-                    AddressChain tmp_ch;
-
-                    var act = RepeatAction(request,
-                        () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} made all zombies invisible !"), TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
-                        () =>
-                        {
-                            tmp_ch = active_zombies_ch;
-                            for (int i = 0; i < nactive_zombies; i++)
-                            {
-                                tmp_ch.Offset(0x18).SetByte(0);
-                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "zombiesinvisible");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        tmp_ch = active_zombies_ch;
-                        for (int i = 0; i < nactive_zombies; i++)
-                        {
-                            tmp_ch.Offset(0x18).SetByte(1);
-                            tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                        }
-                        Connector.SendMessage("Zombies are visible again !");
-                    });
-                }
-                break;
-            }
-            case "teleportzombies":
-            {
-                AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
-                int nactive_zombies = game_ch.Offset(0xAC).GetInt();
-                if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
-                {
-                    AddressChain active_zombies_ch = active_zombies_ptr.Follow();
-                    AddressChain tmp_ch;
-
-                    var act = RepeatAction(request,
-                        () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} teleported all zombies to your house !"), TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
-                        () =>
-                        {
-                            tmp_ch = active_zombies_ch;
-                            for (int i = 0; i < nactive_zombies; i++)
-                            {
-                                AddressChain x_ch = tmp_ch.Offset(0x2C);
-                                if (x_ch.GetFloat() > 0.0f)
-                                {
-                                    x_ch.SetFloat(0.0f);
-                                }
-                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "zombiesposition");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        Connector.SendMessage("Teleporting zombies ended !");
-                    });
-                }
-                break;
-            }
-            case "charmzombies":
-            {
-                AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
-                int nactive_zombies = game_ch.Offset(0xAC).GetInt();
-                if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
-                {
-                    AddressChain active_zombies_ch = active_zombies_ptr.Follow();
-                    AddressChain tmp_ch;
-
-                    if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
-
-                    var act = RepeatAction(request, 
-                        () => true,
-                        () => Connector.SendMessage($"{request.DisplayViewer} charmed all the zombies !"), TimeSpan.FromSeconds(1),
-                        is_not_paused, TimeSpan.FromMilliseconds(500),
-                        () =>
-                        {
-                            tmp_ch = active_zombies_ch;
-                            for (int i = 0; i < nactive_zombies; i++)
-                            {
-                                tmp_ch.Offset(0xB8).SetByte(1);
-                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                            }
-                            return true;
-
-                        }, TimeSpan.FromMilliseconds(500), false, "zombiesstatus");
-                    act.WhenCompleted.Then(_ =>
-                    {
-                        tmp_ch = active_zombies_ch;
-                        for (int i = 0; i < nactive_zombies; i++)
-                        {
-                            tmp_ch.Offset(0xB8).SetByte(0);
-                            tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                        }
-                        Connector.SendMessage("Zombies stopped being charmed !");
-                    });
-                }
-                break;
-            }
-            case "clearzombies":
-            {
-                AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
-                int nactive_zombies = game_ch.Offset(0xAC).GetInt();
-                if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
-                {
-                    AddressChain active_zombies_ch = active_zombies_ptr.Follow();
-                    AddressChain tmp_ch;
-
-                    if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
-
-                    TryEffect(request,
-                        () => true,
-                        () =>
-                        {
-                            tmp_ch = active_zombies_ch;
-                            for (int i = 0; i < nactive_zombies; i++)
-                            {
-                                tmp_ch.Offset(0x28).SetByte(1);
-                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
-                            }
+                            collect_ch.SetByte(JMP);
+                            Connector.SendMessage($"{request.DisplayViewer} gave you auto collect.");
                             return true;
                         },
-                        () => Connector.SendMessage($"{request.DisplayViewer} cleared all the zombies !"),
-                        null, true, "zombieshealth");
-                }
-                break;
-            }
-            case "clearplants":
-            {
-                AddressChain plants_ptr = game_ch.Offset(0xC4);
-                int nplants = game_ch.Offset(0xD4).GetInt();
-                if (plants_ptr.GetInt() != 0 && nplants > 0)
-                {
-                    AddressChain plants_ch = plants_ptr.Follow();
-                    AddressChain tmp_ch;
+                        "collect");
 
-                    TryEffect(request,
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        collect_ch.SetByte(JNZ_SHORT);
+                        Connector.SendMessage("Auto collect ended.");
+                    });
+                    break;
+                }
+            case "invinciblezombies":
+                {
+                    if (invincible_zombies_ch.GetByte() == NOP) { DelayEffect(request); return; }
+
+                    if (!is_zombie_out()) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
                         () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            tmp_ch = plants_ch;
-                            for (int i = 0; i < nplants;)
-                            {
-                                AddressChain plant_is_dead_ch = tmp_ch.Offset(0x141);
-                                if (plant_is_dead_ch.GetByte() == 0)
-                                {
-                                    plant_is_dead_ch.SetByte(1);
-                                    i++;
-                                }
-                                tmp_ch = tmp_ch.Offset(PLANT_OBJECT_SIZE);
-                            }
+                            byte[] nops = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+                            invincible_zombies_ch.SetBytes(nops);
+                            Connector.SendMessage($"{request.DisplayViewer} made zombies invincible.");
                             return true;
                         },
-                        () => Connector.SendMessage($"{request.DisplayViewer} cleared all the plants !"),
-                        null, true, "plantshealth");
-                }
-                break;
-            }
-            case "shufflecards":
-            {
-                AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
-                if (cards_ptr_ch.GetInt() != 0 && !cards.Any())
-                {
-                    AddressChain cards_ch = cards_ptr_ch.Follow();
-                    int ncards = cards_ch.Offset(0x24).GetInt();
+                        "zombieshealth");
 
-                    TryEffect(request,
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        byte[] code = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00 };
+                        invincible_zombies_ch.SetBytes(code);
+                        Connector.SendMessage("Invincible zombies ended.");
+                    });
+                    break;
+                }
+            case "slowbullets":
+                {
+                    if (GetUShort(slow_bullets_ch) == NOP_NOP) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
                         () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            for (int i = 0; i < ncards; i++)
+                            SetUShort(slow_bullets_ch, NOP_NOP);
+                            Connector.SendMessage($"{request.DisplayViewer} made bullets slow.");
+                            return true;
+                        },
+                        "bullets");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        SetUShort(slow_bullets_ch, 0x7575);
+                        Connector.SendMessage("Slow bullets ended.");
+                    });
+                    break;
+                }
+            case "highgravitybullets":
+                {
+                    if (high_gravity_bullets_ch.GetByte() == NOP) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
+                        () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
+                        () =>
+                        {
+                            SetUShort(high_gravity_bullets_ch, NOP_NOP);
+                            Connector.SendMessage($"{request.DisplayViewer} increased the gravity on bullets.");
+                            return true;
+                        },
+                        "bullets");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        SetUShort(high_gravity_bullets_ch, 0x2375);
+                        Connector.SendMessage("Bullets gravity returned to normal.");
+                    });
+                    break;
+                }
+            case "backwardsbullets":
+                {
+                    if (backwards_bullets_ch.GetByte() == NOP) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
+                        () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
+                        () =>
+                        {
+                            SetUShort(backwards_bullets_ch, NOP_NOP);
+                            Connector.SendMessage($"{request.DisplayViewer} made plants to shoot backwards.");
+                            return true;
+                        },
+                        "bullets");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        SetUShort(backwards_bullets_ch, 0x2075);
+                        Connector.SendMessage("Plants direction of shooting back to normal.");
+                    });
+                    break;
+                }
+            case "freezebullets":
+                {
+                    if (freeze_bullets_ch.GetByte() == NOP) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
+                        () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
+                        () =>
+                        {
+                            SetUShort(freeze_bullets_ch, NOP_NOP);
+                            Connector.SendMessage($"{request.DisplayViewer} froze the bullets.");
+                            return true;
+                        },
+                        "bullets");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        SetUShort(freeze_bullets_ch, 0x775);
+                        Connector.SendMessage("Bullets are not frozen anymore.");
+                    });
+                    break;
+                }
+            case "invincibleplants":
+                {
+                    if (invincible_plants_ch1.GetByte() == NOP) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
+                        () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
+                        () =>
+                        {
+                            invincible_plants_ch1.SetBytes(NOP_NOP_NOP);
+                            invincible_plants_ch2.SetInt(NOP_NOP_NOP_NOP);
+                            Connector.SendMessage($"{request.DisplayViewer} made plants invincible.");
+                            return true;
+                        },
+                        "plantshealth");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        byte[] t1 = { 0x29, 0x50, 0x40 };
+                        byte[] t2 = { 0x83, 0x46, 0x40, 0xFC };
+                        invincible_plants_ch1.SetBytes(t1);
+                        invincible_plants_ch2.SetBytes(t2);
+                        Connector.SendMessage("Plants are not invincible anymore.");
+                    });
+                    break;
+                }
+            case "onehitkill":
+                {
+                    if (one_hit_kill_ch1.GetByte() == 0x33) { DelayEffect(request); return; }
+
+                    var tim = StartTimed(request,
+                        () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
+                        () =>
+                        {
+                            byte[] t1 = { 0x33, 0xED, 0x90, 0x90, 0x90, 0x90 }; // xor ebp, ebp
+                            byte[] t2 = { 0x33, 0xC9, 0x90, 0x90, 0x90, 0x90 }; // xor ecx, ecx
+                            byte[] t3 = { 0x33, 0xFF, 0x89, 0xBE, 0xDC, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90 }; // xor edi, edi | mov dword ptr ds:[esi+dc], edi
+                            one_hit_kill_ch1.SetBytes(t1);
+                            one_hit_kill_ch2.SetBytes(t2);
+                            one_hit_kill_ch3.SetBytes(t3);
+                            Connector.SendMessage($"{request.DisplayViewer} made every zombie to die in one hit.");
+                            return true;
+                        },
+                        "zombieshealth");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        byte[] t1 = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
+                        byte[] t2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00 };
+                        byte[] t3 = { 0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00 };
+                        one_hit_kill_ch1.SetBytes(t1);
+                        one_hit_kill_ch2.SetBytes(t2);
+                        one_hit_kill_ch3.SetBytes(t3);
+                        Connector.SendMessage("One Hit Kill off.");
+                    });
+                    break;
+                }
+            case "zombiessize":
+                {
+                    AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                    int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                    if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                    {
+                        bool is_big = string.Equals(code[1], "big");
+
+                        AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} made all zombies " + (is_big ? "bigger" : "smaller") + "."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
                             {
-                                cards.Add(cards_ch.Offset(0x5C + i * 0x50).GetInt());
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0x11C).SetFloat(is_big ? SIZE_BIG : SIZE_SMALL);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "zombiessize");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            tmp_ch = active_zombies_ch;
+                            for (int i = 0; i < nactive_zombies; i++)
+                            {
+                                tmp_ch.Offset(0x11C).SetFloat(SIZE_NORMAL);
+                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
                             }
-                            cards = cards.OrderBy(_ => RNG.Next()).ToList();
+                            Connector.SendMessage("Zombies size returned to normal.");
+                        });
+                    }
+                    break;
+                }
+            case "randomcards":
+                {
+                    AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+                    if (cards_ptr_ch.GetInt() != 0 && !cards.Any())
+                    {
+                        AddressChain cards_ch = cards_ptr_ch.Follow();
+                        int ncards = cards_ch.Offset(0x24).GetInt();
+
+                        var tim = StartTimed(request,
+                            () => true,
+                            is_not_paused,
+                            TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    AddressChain card_type = cards_ch.Offset(0x5C + i * 0x50);
+                                    cards.Add(card_type.GetInt());
+                                    card_type.SetInt(RNG.Next(0, MAX_USABLE_CARD));
+                                }
+                                Connector.SendMessage($"{request.DisplayViewer} changed all your cards.");
+                                return true;
+                            },
+                            "cards");
+
+                        tim.WhenCompleted.Then(_ =>
+                        {
                             for (int i = 0; i < ncards; i++)
                             {
                                 cards_ch.Offset(0x5C + i * 0x50).SetInt(cards[i]);
                             }
                             cards.Clear();
+                            Connector.SendMessage("Cards returned to normal.");
+                        });
+                    }
+                    break;
+                }
+            case "zombiesspeed":
+                {
+                    if (zombies_speed_ch.GetByte() == 0xC7) { DelayEffect(request); return; }
+
+                    if (!is_zombie_out()) { DelayEffect(request); return; }
+
+                    byte[] t1 = { 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
+                    switch (code[1])
+                    {
+                        case "faster": // 50.0
+                            t1[5] = 0x48;
+                            t1[6] = 0x42;
+                            break;
+                        case "slower": // 5.0
+                            t1[5] = 0xA;
+                            t1[6] = 0x40;
+                            break;
+                    }
+
+                    var tim = StartTimed(request,
+                        () => true,
+                        is_not_paused,
+                        TimeSpan.FromMilliseconds(500),
+                        () =>
+                        {
+                            zombies_speed_ch.SetBytes(t1);
+                            Connector.SendMessage($"{request.DisplayViewer} made zombies" + code[1] + ".");
                             return true;
                         },
-                        () => Connector.SendMessage($"{request.DisplayViewer} shuffled all your cards !"),
-                        null, true, "cards");
+                        "zombiesspeed");
+
+                    tim.WhenCompleted.Then(_ =>
+                    {
+                        byte[] t2 = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
+                        zombies_speed_ch.SetBytes(t2);
+                        Connector.SendMessage("Zombies speed returned back to normal.");
+                    });
+                    break;
                 }
-                break;
-            }
+            case "zombiesmiddle":
+                {
+                    AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                    int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                    if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                    {
+                        AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} made all zombies to go to the middle."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0x1C).SetInt((int)LANE.CENTER);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "zombieslane");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            Connector.SendMessage("Zombies returned to their lanes.");
+                        });
+                    }
+                    break;
+                }
+            case "invisiblezombies":
+                {
+                    AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                    int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                    if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                    {
+                        AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} made all zombies invisible."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0x18).SetByte(0);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "zombiesinvisible");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            tmp_ch = active_zombies_ch;
+                            for (int i = 0; i < nactive_zombies; i++)
+                            {
+                                tmp_ch.Offset(0x18).SetByte(1);
+                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                            }
+                            Connector.SendMessage("Zombies are visible again.");
+                        });
+                    }
+                    break;
+                }
+            case "teleportzombies":
+                {
+                    AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                    int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                    if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                    {
+                        AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} teleported all zombies to your house."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    AddressChain x_ch = tmp_ch.Offset(0x2C);
+                                    if (x_ch.GetFloat() > 0.0f)
+                                    {
+                                        x_ch.SetFloat(0.0f);
+                                    }
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "zombiesposition");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            Connector.SendMessage("Teleporting zombies ended.");
+                        });
+                    }
+                    break;
+                }
+            case "charmzombies":
+                {
+                    AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                    int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                    if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                    {
+                        AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
+
+                        var act = RepeatAction(request,
+                            () => true,
+                            () => Connector.SendMessage($"{request.DisplayViewer} charmed all the zombies."), TimeSpan.FromSeconds(1),
+                            is_not_paused, TimeSpan.FromMilliseconds(500),
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0xB8).SetByte(1);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+
+                            }, TimeSpan.FromMilliseconds(500), false, "zombiesstatus");
+                        act.WhenCompleted.Then(_ =>
+                        {
+                            tmp_ch = active_zombies_ch;
+                            for (int i = 0; i < nactive_zombies; i++)
+                            {
+                                tmp_ch.Offset(0xB8).SetByte(0);
+                                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                            }
+                            Connector.SendMessage("Zombies stopped being charmed.");
+                        });
+                    }
+                    break;
+                }
+            case "clearzombies":
+                {
+                    AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+                    int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+                    if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
+                    {
+                        AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        if (!is_one_zombie_in_visible_range(active_zombies_ch, nactive_zombies)) { DelayEffect(request); return; }
+
+                        TryEffect(request,
+                            () => true,
+                            () =>
+                            {
+                                tmp_ch = active_zombies_ch;
+                                for (int i = 0; i < nactive_zombies; i++)
+                                {
+                                    tmp_ch.Offset(0x28).SetByte(1);
+                                    tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+                                }
+                                return true;
+                            },
+                            () => Connector.SendMessage($"{request.DisplayViewer} cleared all the zombies."),
+                            null, true, "zombieshealth");
+                    }
+                    break;
+                }
+            case "clearplants":
+                {
+                    AddressChain plants_ptr = game_ch.Offset(0xC4);
+                    int nplants = game_ch.Offset(0xD4).GetInt();
+                    if (plants_ptr.GetInt() != 0 && nplants > 0)
+                    {
+                        AddressChain plants_ch = plants_ptr.Follow();
+                        AddressChain tmp_ch;
+
+                        TryEffect(request,
+                            () => true,
+                            () =>
+                            {
+                                tmp_ch = plants_ch;
+                                for (int i = 0; i < nplants;)
+                                {
+                                    AddressChain plant_is_dead_ch = tmp_ch.Offset(0x141);
+                                    if (plant_is_dead_ch.GetByte() == 0)
+                                    {
+                                        plant_is_dead_ch.SetByte(1);
+                                        i++;
+                                    }
+                                    tmp_ch = tmp_ch.Offset(PLANT_OBJECT_SIZE);
+                                }
+                                return true;
+                            },
+                            () => Connector.SendMessage($"{request.DisplayViewer} cleared all the plants."),
+                            null, true, "plantshealth");
+                    }
+                    break;
+                }
+            case "shufflecards":
+                {
+                    AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+                    if (cards_ptr_ch.GetInt() != 0 && !cards.Any())
+                    {
+                        AddressChain cards_ch = cards_ptr_ch.Follow();
+                        int ncards = cards_ch.Offset(0x24).GetInt();
+
+                        TryEffect(request,
+                            () => true,
+                            () =>
+                            {
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards.Add(cards_ch.Offset(0x5C + i * 0x50).GetInt());
+                                }
+                                cards = cards.OrderBy(_ => RNG.Next()).ToList();
+                                for (int i = 0; i < ncards; i++)
+                                {
+                                    cards_ch.Offset(0x5C + i * 0x50).SetInt(cards[i]);
+                                }
+                                cards.Clear();
+                                return true;
+                            },
+                            () => Connector.SendMessage($"{request.DisplayViewer} shuffled all your cards."),
+                            null, true, "cards");
+                    }
+                    break;
+                }
             default:
                 Log.Message("Unsupported effect " + code[0]);
                 break;
         }
     }
 
-    protected short GetShort(AddressChain ch)
+    public override bool StopAllEffects()
     {
-        return BitConverter.ToInt16(ch.GetBytes(2), 0);
-    }
-    protected void SetShort(AddressChain ch, short value)
-    {
-        ch.SetBytes(BitConverter.GetBytes(value));
+        bool success = base.StopAllEffects();
+        try
+        {
+            //nocooldown?
+            //cooldown?
+
+            //can't plant
+            AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+            AddressChain cards_ch = cards_ptr_ch.Follow();
+            int ncards = cards_ch.Offset(0x24).GetInt();
+            for (int i = 0; i < ncards; i++)
+            {
+                cards_ch.Offset(0x70 + i * 0x50).SetInt((int)CARD_STATUS.READY);
+            }
+
+            //plant anywhere
+            collision_ch.SetByte(JNZ);
+
+            //auto collect
+            collect_ch.SetByte(JNZ_SHORT);
+
+            //invincible zombies
+            {
+                byte[] code = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00 };
+                invincible_zombies_ch.SetBytes(code);
+            }
+
+            //slow bullets
+            SetUShort(slow_bullets_ch, 0x7575);
+
+            //high gravity bullets
+            SetUShort(high_gravity_bullets_ch, 0x2375);
+
+            //backward bullets
+            SetUShort(backwards_bullets_ch, 0x2075);
+
+            //freeze bullets
+            SetUShort(freeze_bullets_ch, 0x775);
+
+            //invincible plants
+            {
+                byte[] t1 = { 0x29, 0x50, 0x40 };
+                byte[] t2 = { 0x83, 0x46, 0x40, 0xFC };
+                invincible_plants_ch1.SetBytes(t1);
+                invincible_plants_ch2.SetBytes(t2);
+            }
+            //ohko
+            {
+                byte[] t1 = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
+                byte[] t2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00 };
+                byte[] t3 = { 0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00 };
+                one_hit_kill_ch1.SetBytes(t1);
+                one_hit_kill_ch2.SetBytes(t2);
+                one_hit_kill_ch3.SetBytes(t3);
+            }
+            //zombie speed
+            {
+                byte[] t2 = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
+                zombies_speed_ch.SetBytes(t2);
+            }
+
+            //invisible
+            AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
+            int nactive_zombies = game_ch.Offset(0xAC).GetInt();
+            AddressChain active_zombies_ch = active_zombies_ptr.Follow();
+
+            //size
+            var tmp_ch = active_zombies_ch;
+            for (int i = 0; i < nactive_zombies; i++)
+            {
+                tmp_ch.Offset(0x11C).SetFloat(SIZE_NORMAL);
+                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+            }
+
+            //invisible
+            tmp_ch = active_zombies_ch;
+            for (int i = 0; i < nactive_zombies; i++)
+            {
+                tmp_ch.Offset(0x18).SetByte(1);
+                tmp_ch = tmp_ch.Offset(ZOMBIE_OBJECT_SIZE);
+            }
+
+            //charm zombies?
+
+            original_max_cooldowns.Clear();
+            new_max_cooldowns.Clear();
+        }
+        catch { success = false; }
+        return success;
     }
     protected ushort GetUShort(AddressChain ch)
     {
@@ -1003,33 +1088,14 @@ public class PlantsVsZombies : InjectEffectPack
         ch.SetBytes(BitConverter.GetBytes(value));
     }
 
-    protected int random_percentage(int value)
-    {
-        return (int)((value / 100.0f) * RNG.Next(MIN_PERCENTAGE, MAX_PERCENTAGE));
-    }
-
     protected int random_big_percentage(int value)
     {
         return (int)((value / 100.0f) * RNG.Next(MIN_BIG_PERCENTAGE, MAX_BIG_PERCENTAGE));
     }
 
-    protected long ida_addr(long addr)
-    {
-        return (addr - imagebase) + 0x400000;
-    }
-
     protected bool is_not_paused()
     {
         return game_ch.Offset(0x67).GetByte() == 1;
-    }
-    byte[] int_to_array_little_endian(long data)
-    {
-        byte[] b = new byte[4];
-        b[0] = (byte)data;
-        b[1] = (byte)(((long)data >> 8) & 0xFF);
-        b[2] = (byte)(((long)data >> 16) & 0xFF);
-        b[3] = (byte)(((long)data >> 24) & 0xFF);
-        return b;
     }
 
     bool is_one_zombie_in_visible_range(AddressChain active_zombies_ch, int nactive_zombies)
