@@ -10,7 +10,6 @@ using ConnectorLib.Inject.AddressChaining;
 using ConnectorLib.Inject.Payload.DirectX;
 using ConnectorLib.Inject.VersionProfiles;
 using ConnectorType = CrowdControl.Common.ConnectorType;
-using CrowdControl.Games.SpecialConnectors;
 
 namespace CrowdControl.Games.Packs;
 
