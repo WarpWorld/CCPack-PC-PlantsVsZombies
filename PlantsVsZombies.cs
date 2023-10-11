@@ -1,19 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using System.Linq;
+using System.Text;
 using ConnectorLib;
-using CrowdControl.Common;
-using Log = CrowdControl.Common.Log;
-using ConnectorLib.Inject.AddressChaining;
 using ConnectorLib.Inject.Payload.DirectX;
 using ConnectorLib.Inject.VersionProfiles;
-using ConnectorType = CrowdControl.Common.ConnectorType;
 using ConnectorLib.Memory;
+using CrowdControl.Common;
+using Log = CrowdControl.Common.Log;
+using ConnectorType = CrowdControl.Common.ConnectorType;
 using AddressChain = ConnectorLib.Inject.AddressChaining.AddressChain;
 
-namespace CrowdControl.Games.Packs;
+namespace CrowdControl.Games.Packs.PlantsVsZombies;
 
 [SuppressMessage("ReSharper", "StringLiteralTypo")]
 public class PlantsVsZombies : InjectEffectPack
