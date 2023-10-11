@@ -10,6 +10,8 @@ using ConnectorLib.Inject.AddressChaining;
 using ConnectorLib.Inject.Payload.DirectX;
 using ConnectorLib.Inject.VersionProfiles;
 using ConnectorType = CrowdControl.Common.ConnectorType;
+using ConnectorLib.Memory;
+using AddressChain = ConnectorLib.Inject.AddressChaining.AddressChain;
 
 namespace CrowdControl.Games.Packs;
 
@@ -115,6 +117,8 @@ public class PlantsVsZombies : InjectEffectPack
 
     private void InitGame()
     {
+        Connector.PointerFormat = PointerFormat.Absolute32LE;
+
         var imagebase_ch = AddressChain.AOB(Connector, 0, Encoding.ASCII.GetBytes("This program cannot be run in DOS mode"), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", -(0x4E), ScanHint.None);
         imagebase_ch.Calculate(out imagebase);
 
