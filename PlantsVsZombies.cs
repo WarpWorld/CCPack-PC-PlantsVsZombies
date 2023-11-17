@@ -72,7 +72,7 @@ public class PlantsVsZombies : InjectEffectPack
     private readonly List<int> new_max_cooldowns = new();
     private List<int> cards = new();
 
-    byte[] free_space_size_addr;
+    private byte[] free_space_size_addr;
 
     #endregion
 
@@ -1101,7 +1101,7 @@ public class PlantsVsZombies : InjectEffectPack
         return game_ch.Offset(0x67).GetByte() == 1;
     }
 
-    bool is_one_zombie_in_visible_range(AddressChain active_zombies_ch, int nactive_zombies)
+    private bool is_one_zombie_in_visible_range(AddressChain active_zombies_ch, int nactive_zombies)
     {
         bool res = false;
         AddressChain tmp_ch = active_zombies_ch;
@@ -1117,7 +1117,7 @@ public class PlantsVsZombies : InjectEffectPack
         return res;
     }
 
-    bool is_zombie_out()
+    private bool is_zombie_out()
     {
         bool res = false;
         AddressChain active_zombies_ptr = game_ch.Offset(0xA8);
