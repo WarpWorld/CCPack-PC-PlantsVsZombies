@@ -108,7 +108,7 @@ public class PlantsVsZombies : InjectEffectPack
     {
         VersionProfiles = new List<VersionProfile>
         {
-            new("popcapgame1", InitGame, DeinitGame, null, Direct3DVersion.Direct3D9)
+            new("popcapgame1", InitGame, DeinitGame)
         };
     }
 
