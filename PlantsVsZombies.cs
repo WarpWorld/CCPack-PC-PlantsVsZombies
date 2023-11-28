@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 using ConnectorLib;
-using ConnectorLib.Inject.Payload.DirectX;
 using ConnectorLib.Inject.VersionProfiles;
 using ConnectorLib.Memory;
 using CrowdControl.Common;
@@ -250,8 +248,8 @@ public class PlantsVsZombies : InjectEffectPack
             return;
         }
 
-        var code = FinalCode(request).Split('_');
-        switch (code[0])
+        var codeParams = FinalCode(request).Split('_');
+        switch (codeParams[0])
         {
             case "infinitesun":
                 {
@@ -276,13 +274,13 @@ public class PlantsVsZombies : InjectEffectPack
                 }
             case "sun":
                 {
-                    if (!int.TryParse(code[2], out int quantity))
+                    if (!int.TryParse(codeParams[2], out int quantity))
                     {
                         Respond(request, EffectStatus.FailTemporary, "Invalid quantity");
                         break;
                     }
 
-                    bool give = !string.Equals(code[1], "down");
+                    bool give = !string.Equals(codeParams[1], "down");
                     if (!give) quantity *= -1;
 
                     AddressChain sun_ch = game_ch.Offset(0x5578);
@@ -339,7 +337,7 @@ public class PlantsVsZombies : InjectEffectPack
                         AddressChain cards_ch = cards_ptr_ch.Follow();
                         int ncards = cards_ch.Offset(0x24).GetInt();
 
-                        bool is_up = string.Equals(code[1], "up");
+                        bool is_up = string.Equals(codeParams[1], "up");
 
                         var act = RepeatAction(request,
                             () => true,
@@ -643,7 +641,7 @@ public class PlantsVsZombies : InjectEffectPack
                     int nactive_zombies = game_ch.Offset(0xAC).GetInt();
                     if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
                     {
-                        bool is_big = string.Equals(code[1], "big");
+                        bool is_big = string.Equals(codeParams[1], "big");
 
                         AddressChain active_zombies_ch = active_zombies_ptr.Follow();
                         AddressChain tmp_ch;
@@ -722,7 +720,7 @@ public class PlantsVsZombies : InjectEffectPack
                     if (!is_zombie_out()) { DelayEffect(request); return; }
 
                     byte[] t1 = { 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
-                    switch (code[1])
+                    switch (codeParams[1])
                     {
                         case "faster": // 50.0
                             t1[5] = 0x48;
@@ -741,7 +739,7 @@ public class PlantsVsZombies : InjectEffectPack
                         () =>
                         {
                             zombies_speed_ch.SetBytes(t1);
-                            Connector.SendMessage($"{request.DisplayViewer} made zombies" + code[1] + ".");
+                            Connector.SendMessage($"{request.DisplayViewer} made zombies" + codeParams[1] + ".");
                             return true;
                         },
                         "zombiesspeed");
@@ -985,7 +983,8 @@ public class PlantsVsZombies : InjectEffectPack
                     break;
                 }
             default:
-                Log.Message("Unsupported effect " + code[0]);
+                Log.Message("Unsupported effect " + codeParams[0]);
+                Respond(request, EffectStatus.FailPermanent, "Unknown effect ID: " + codeParams[0]);
                 break;
         }
     }
