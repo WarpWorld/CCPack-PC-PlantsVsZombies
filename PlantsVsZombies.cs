@@ -229,7 +229,7 @@ public class PlantsVsZombies : InjectEffectPack
 
     #endregion
 
-    protected override bool IsReady(EffectRequest request)
+    protected override bool IsReady(EffectRequest? request)
     {
         bool res = false;
         if (game_ptr_ch.GetInt() != 0)
