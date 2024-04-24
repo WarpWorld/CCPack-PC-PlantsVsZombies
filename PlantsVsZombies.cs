@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
 using ConnectorLib;
-using ConnectorLib.Inject.VersionProfiles;
 using ConnectorLib.Memory;
 using CrowdControl.Common;
 using Log = CrowdControl.Common.Log;
@@ -43,7 +39,7 @@ public class PlantsVsZombies : InjectEffectPack
     private const byte JMP = 0xEB;
     private const byte NOP = 0x90;
     private const ushort NOP_NOP = 0x9090;
-    private readonly byte[] NOP_NOP_NOP = { 0x90, 0x90, 0x90 };
+    private readonly byte[] NOP_NOP_NOP = [0x90, 0x90, 0x90];
     private const int NOP_NOP_NOP_NOP = -1869574000;
 
     private const int MIN_PERCENTAGE = 10;
@@ -66,9 +62,9 @@ public class PlantsVsZombies : InjectEffectPack
 
     //private long imagebase;
 
-    private readonly List<int> original_max_cooldowns = new();
-    private readonly List<int> new_max_cooldowns = new();
-    private List<int> cards = new();
+    private readonly List<int> original_max_cooldowns = [];
+    private readonly List<int> new_max_cooldowns = [];
+    private List<int> cards = [];
 
     private byte[] free_space_size_addr;
 
@@ -104,10 +100,7 @@ public class PlantsVsZombies : InjectEffectPack
     public PlantsVsZombies(UserRecord player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler)
         : base(player, responseHandler, statusUpdateHandler)
     {
-        VersionProfiles = new List<VersionProfile>
-        {
-            new("popcapgame1", InitGame, DeinitGame)
-        };
+        VersionProfiles = [new("popcapgame1", InitGame, DeinitGame)];
     }
 
     #region [De]init
@@ -122,68 +115,70 @@ public class PlantsVsZombies : InjectEffectPack
 
         // Top class
 
-        byte[] top_class_pattern = { 0x8B, 0x0D, 0xAF, 0xAF, 0xAF, 0xAF, 0x8B, 0x89, 0xAF, 0xAF, 0xAF, 0xAF, 0x83, 0xF9, 0x14 };
+        byte[] top_class_pattern = [0x8B, 0x0D, 0xAF, 0xAF, 0xAF, 0xAF, 0x8B, 0x89, 0xAF, 0xAF, 0xAF, 0xAF, 0x83, 0xF9, 0x14
+        ];
         var tmp_ch = AddressChain.AOB(Connector, 0, top_class_pattern, "xx????xx????xxx", 2, ScanHint.ExecutePage, imagebase_ch);
 
         game_ptr_ch = tmp_ch.Follow().Follow().Offset(0x868);
 
         // Collision
 
-        byte[] collision_pattern = { 0xF, 0x85, 0xA9, 0x4, 0x0, 0x0 };
+        byte[] collision_pattern = [0xF, 0x85, 0xA9, 0x4, 0x0, 0x0];
         collision_ch = AddressChain.AOB(Connector, 0, collision_pattern, "xxxxxx", 1, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Collect
 
-        byte[] collect_pattern = { 0x75, 0xAF, 0x8B, 0xAF, 0xE8, 0xAF, 0xAF, 0xAF, 0xAF, 0xEB, 0xAF, 0x8B, 0xAF, 0xE8, 0xAF, 0xAF, 0xAF, 0xAF, 0x83 };
+        byte[] collect_pattern = [0x75, 0xAF, 0x8B, 0xAF, 0xE8, 0xAF, 0xAF, 0xAF, 0xAF, 0xEB, 0xAF, 0x8B, 0xAF, 0xE8, 0xAF, 0xAF, 0xAF, 0xAF, 0x83
+        ];
         collect_ch = AddressChain.AOB(Connector, 0, collect_pattern, "x?x?x????x?x?x????x", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Slow bullets
 
-        byte[] slow_bullets_pattern = { 0x75, 0x75, 0xD9, 0xEE, 0xD8, 0x55, 0x44 };
+        byte[] slow_bullets_pattern = [0x75, 0x75, 0xD9, 0xEE, 0xD8, 0x55, 0x44];
         slow_bullets_ch = AddressChain.AOB(Connector, 0, slow_bullets_pattern, "xxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Invincible zombies
 
-        byte[] invincible_zombies_pattern = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00, 0x8B, 0x8D };
+        byte[] invincible_zombies_pattern = [0xF, 0x85, 0x9B, 0x00, 0x00, 0x00, 0x8B, 0x8D];
         invincible_zombies_ch = AddressChain.AOB(Connector, 0, invincible_zombies_pattern, "xxxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // High gravity bullets
 
-        byte[] high_gravity_bullets_pattern = { 0x75, 0x23, 0x83, 0x7D, 0x58, 0x08 };
+        byte[] high_gravity_bullets_pattern = [0x75, 0x23, 0x83, 0x7D, 0x58, 0x08];
         high_gravity_bullets_ch = AddressChain.AOB(Connector, 0, high_gravity_bullets_pattern, "xxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Backwards bullets
 
-        byte[] backwards_bullets_pattern = { 0x75, 0x20, 0x83, 0x7D, 0x60, 0x3C };
+        byte[] backwards_bullets_pattern = [0x75, 0x20, 0x83, 0x7D, 0x60, 0x3C];
         backwards_bullets_ch = AddressChain.AOB(Connector, 0, backwards_bullets_pattern, "xxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Freeze bullets
 
-        byte[] freeze_bullets_pattern = { 0x75, 0x07, 0xE8, 0xB9, 0xF7, 0xFF, 0xFF };
+        byte[] freeze_bullets_pattern = [0x75, 0x07, 0xE8, 0xB9, 0xF7, 0xFF, 0xFF];
         freeze_bullets_ch = AddressChain.AOB(Connector, 0, freeze_bullets_pattern, "xxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Invincible plants
 
-        byte[] invincible_plants_pattern = { 0x29, 0x50, 0x40, 0x83, 0xF9, 0x19 };
+        byte[] invincible_plants_pattern = [0x29, 0x50, 0x40, 0x83, 0xF9, 0x19];
         invincible_plants_ch1 = AddressChain.AOB(Connector, 0, invincible_plants_pattern, "xxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
-        byte[] invincible_plants_pattern2 = { 0x83, 0x46, 0x40, 0xFC, 0x8B, 0x4E, 0x40 };
+        byte[] invincible_plants_pattern2 = [0x83, 0x46, 0x40, 0xFC, 0x8B, 0x4E, 0x40];
         invincible_plants_ch2 = AddressChain.AOB(Connector, 0, invincible_plants_pattern2, "xxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // One hit kill
 
-        byte[] one_hit_kill_pattern = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
+        byte[] one_hit_kill_pattern = [0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00];
         one_hit_kill_ch1 = AddressChain.AOB(Connector, 0, one_hit_kill_pattern, "xxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
-        byte[] one_hit_kill_pattern2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00, 0xB8 };
+        byte[] one_hit_kill_pattern2 = [0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00, 0xB8];
         one_hit_kill_ch2 = AddressChain.AOB(Connector, 0, one_hit_kill_pattern2, "xxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
-        byte[] one_hit_kill_pattern3 = { 0x29, 0x86, 0xDC, 0x00, 0x00, 0x00 };
+        byte[] one_hit_kill_pattern3 = [0x29, 0x86, 0xDC, 0x00, 0x00, 0x00];
         one_hit_kill_ch3 = AddressChain.AOB(Connector, 0, one_hit_kill_pattern3, "xxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
 
         // Zombies speed
 
-        byte[] zombies_speed_pattern = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04 };
+        byte[] zombies_speed_pattern = [0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04];
         zombies_speed_ch = AddressChain.AOB(Connector, 0, zombies_speed_pattern, "xxxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
     }
 
@@ -468,7 +463,7 @@ public class PlantsVsZombies : InjectEffectPack
                         TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            byte[] nops = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+                            byte[] nops = [0x90, 0x90, 0x90, 0x90, 0x90, 0x90];
                             invincible_zombies_ch.SetBytes(nops);
                             Connector.SendMessage($"{request.DisplayViewer} made zombies invincible.");
                             return true;
@@ -477,7 +472,7 @@ public class PlantsVsZombies : InjectEffectPack
 
                     tim.WhenCompleted.Then(_ =>
                     {
-                        byte[] code = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00 };
+                        byte[] code = [0xF, 0x85, 0x9B, 0x00, 0x00, 0x00];
                         invincible_zombies_ch.SetBytes(code);
                         Connector.SendMessage("Invincible zombies ended.");
                     });
@@ -594,8 +589,8 @@ public class PlantsVsZombies : InjectEffectPack
 
                     tim.WhenCompleted.Then(_ =>
                     {
-                        byte[] t1 = { 0x29, 0x50, 0x40 };
-                        byte[] t2 = { 0x83, 0x46, 0x40, 0xFC };
+                        byte[] t1 = [0x29, 0x50, 0x40];
+                        byte[] t2 = [0x83, 0x46, 0x40, 0xFC];
                         invincible_plants_ch1.SetBytes(t1);
                         invincible_plants_ch2.SetBytes(t2);
                         Connector.SendMessage("Plants are not invincible anymore.");
@@ -612,9 +607,9 @@ public class PlantsVsZombies : InjectEffectPack
                         TimeSpan.FromMilliseconds(500),
                         () =>
                         {
-                            byte[] t1 = { 0x33, 0xED, 0x90, 0x90, 0x90, 0x90 }; // xor ebp, ebp
-                            byte[] t2 = { 0x33, 0xC9, 0x90, 0x90, 0x90, 0x90 }; // xor ecx, ecx
-                            byte[] t3 = { 0x33, 0xFF, 0x89, 0xBE, 0xDC, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90 }; // xor edi, edi | mov dword ptr ds:[esi+dc], edi
+                            byte[] t1 = [0x33, 0xED, 0x90, 0x90, 0x90, 0x90]; // xor ebp, ebp
+                            byte[] t2 = [0x33, 0xC9, 0x90, 0x90, 0x90, 0x90]; // xor ecx, ecx
+                            byte[] t3 = [0x33, 0xFF, 0x89, 0xBE, 0xDC, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90]; // xor edi, edi | mov dword ptr ds:[esi+dc], edi
                             one_hit_kill_ch1.SetBytes(t1);
                             one_hit_kill_ch2.SetBytes(t2);
                             one_hit_kill_ch3.SetBytes(t3);
@@ -625,9 +620,9 @@ public class PlantsVsZombies : InjectEffectPack
 
                     tim.WhenCompleted.Then(_ =>
                     {
-                        byte[] t1 = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
-                        byte[] t2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00 };
-                        byte[] t3 = { 0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00 };
+                        byte[] t1 = [0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00];
+                        byte[] t2 = [0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00];
+                        byte[] t3 = [0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00];
                         one_hit_kill_ch1.SetBytes(t1);
                         one_hit_kill_ch2.SetBytes(t2);
                         one_hit_kill_ch3.SetBytes(t3);
@@ -719,7 +714,8 @@ public class PlantsVsZombies : InjectEffectPack
 
                     if (!is_zombie_out()) { DelayEffect(request); return; }
 
-                    byte[] t1 = { 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
+                    byte[] t1 = [0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3
+                    ];
                     switch (codeParams[1])
                     {
                         case "faster": // 50.0
@@ -746,7 +742,8 @@ public class PlantsVsZombies : InjectEffectPack
 
                     tim.WhenCompleted.Then(_ =>
                     {
-                        byte[] t2 = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
+                        byte[] t2 = [0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3
+                        ];
                         zombies_speed_ch.SetBytes(t2);
                         Connector.SendMessage("Zombies speed returned back to normal.");
                     });
@@ -1014,7 +1011,7 @@ public class PlantsVsZombies : InjectEffectPack
 
             //invincible zombies
             {
-                byte[] code = { 0xF, 0x85, 0x9B, 0x00, 0x00, 0x00 };
+                byte[] code = [0xF, 0x85, 0x9B, 0x00, 0x00, 0x00];
                 invincible_zombies_ch.SetBytes(code);
             }
 
@@ -1032,23 +1029,24 @@ public class PlantsVsZombies : InjectEffectPack
 
             //invincible plants
             {
-                byte[] t1 = { 0x29, 0x50, 0x40 };
-                byte[] t2 = { 0x83, 0x46, 0x40, 0xFC };
+                byte[] t1 = [0x29, 0x50, 0x40];
+                byte[] t2 = [0x83, 0x46, 0x40, 0xFC];
                 invincible_plants_ch1.SetBytes(t1);
                 invincible_plants_ch2.SetBytes(t2);
             }
             //ohko
             {
-                byte[] t1 = { 0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00 };
-                byte[] t2 = { 0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00 };
-                byte[] t3 = { 0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00 };
+                byte[] t1 = [0x8B, 0xAF, 0xC8, 0x00, 0x00, 0x00];
+                byte[] t2 = [0x8B, 0x8D, 0xD0, 0x00, 0x00, 0x00];
+                byte[] t3 = [0x29, 0x86, 0xDC, 0x00, 0x00, 0x00, 0x8B, 0xBE, 0xDC, 0x00, 0x00, 0x00];
                 one_hit_kill_ch1.SetBytes(t1);
                 one_hit_kill_ch2.SetBytes(t2);
                 one_hit_kill_ch3.SetBytes(t3);
             }
             //zombie speed
             {
-                byte[] t2 = { 0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3 };
+                byte[] t2 = [0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x83, 0xC4, 0x14, 0xC3
+                ];
                 zombies_speed_ch.SetBytes(t2);
             }
 
