@@ -226,6 +226,7 @@ public class PlantsVsZombies : InjectEffectPack
 
     protected override bool IsReady(EffectRequest? request)
     {
+        if (!is_not_paused()) return false;
         bool res = false;
         if (game_ptr_ch.GetInt() != 0)
         {
@@ -237,12 +238,6 @@ public class PlantsVsZombies : InjectEffectPack
 
     protected override void StartEffect(EffectRequest request)
     {
-        if (!(IsReady(request) && is_not_paused()))
-        {
-            DelayEffect(request);
-            return;
-        }
-
         var codeParams = FinalCode(request).Split('_');
         switch (codeParams[0])
         {
