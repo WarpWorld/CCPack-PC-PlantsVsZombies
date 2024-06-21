@@ -224,16 +224,13 @@ public class PlantsVsZombies : InjectEffectPack
 
     #endregion
 
-    protected override bool IsReady(EffectRequest? request)
+    protected override GameState GetGameState()
     {
-        if (!is_not_paused()) return false;
-        bool res = false;
-        if (game_ptr_ch.GetInt() != 0)
-        {
-            game_ch = game_ptr_ch.Follow();
-            res = true;
-        }
-        return res;
+        if (!is_not_paused()) return GameState.Paused;
+        if (game_ptr_ch.TryGetInt(out int v)) return GameState.WrongMode;
+        if (v == 0) return GameState.WrongMode;
+        game_ch = game_ptr_ch.Follow();
+        return GameState.Ready;
     }
 
     protected override void StartEffect(EffectRequest request)
