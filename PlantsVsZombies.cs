@@ -228,10 +228,10 @@ public class PlantsVsZombies : InjectEffectPack
     {
         try
         {
-            if (!is_not_paused()) return GameState.Paused;
             if (game_ptr_ch.TryGetInt(out int v)) return GameState.WrongMode;
             if (v == 0) return GameState.WrongMode;
             game_ch = game_ptr_ch.Follow();
+            if (!is_not_paused()) return GameState.Paused;
             return GameState.Ready;
         }
         catch { return GameState.Unknown; }
