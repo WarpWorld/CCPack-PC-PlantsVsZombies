@@ -62,9 +62,9 @@ public class PlantsVsZombies : InjectEffectPack
 
     //private long imagebase;
 
-    private readonly List<int> original_max_cooldowns = [];
-    private readonly List<int> new_max_cooldowns = [];
-    private List<int> cards = [];
+    private readonly List<int> original_max_cooldowns = new();
+    private readonly List<int> new_max_cooldowns = new();
+    private List<int> cards = new();
 
     private byte[] free_space_size_addr;
 
