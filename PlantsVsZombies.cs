@@ -189,7 +189,7 @@ public class PlantsVsZombies : InjectEffectPack
     #endregion
 
     #region Effect List
-    public override EffectList Effects => new List<Effect>
+    public override EffectList Effects { get; } = new List<Effect>
         {
             new("Infinite Sun", "infinitesun") { Duration = TimeSpan.FromSeconds(15) },
             new("Give Sun", "sun_up") { Quantity = 9999 },
