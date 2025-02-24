@@ -267,7 +267,7 @@ public class PlantsVsZombies : InjectEffectPack
                 {
                     if (!int.TryParse(codeParams[2], out int quantity))
                     {
-                        Respond(request, EffectStatus.FailTemporary, "Invalid quantity");
+                        Respond(request, EffectStatus.FailTemporary, StandardErrors.CannotParseNumber, codeParams[2]);
                         break;
                     }
 
