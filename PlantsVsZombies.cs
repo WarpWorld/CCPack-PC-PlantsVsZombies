@@ -2,9 +2,9 @@
 using ConnectorLib;
 using ConnectorLib.Memory;
 using CrowdControl.Common;
-using Log = CrowdControl.Common.Log;
-using ConnectorType = CrowdControl.Common.ConnectorType;
 using AddressChain = ConnectorLib.Inject.AddressChaining.AddressChain;
+using ConnectorType = CrowdControl.Common.ConnectorType;
+using Log = CrowdControl.Common.Log;
 
 namespace CrowdControl.Games.Packs.PlantsVsZombies;
 
