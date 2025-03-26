@@ -314,7 +314,7 @@ public class PlantsVsZombies : InjectEffectPack
                         return true;
                     },
                     () => Connector.SendMessage($"{request.DisplayViewer} {(give ? "sent" : "took")} {Math.Abs(quantity)} units of sun."),
-                    null, true, "sun");
+                    mutex: "sun");
                 break;
             }
             case "nocooldown":
@@ -978,7 +978,7 @@ public class PlantsVsZombies : InjectEffectPack
                             return true;
                         },
                         () => Connector.SendMessage($"{request.DisplayViewer} cleared all the zombies."),
-                        null, true, "zombieshealth");
+                        mutex: "zombieshealth");
                 }
 
                 break;
@@ -1012,7 +1012,7 @@ public class PlantsVsZombies : InjectEffectPack
                             return true;
                         },
                         () => Connector.SendMessage($"{request.DisplayViewer} cleared all the plants."),
-                        null, true, "plantshealth");
+                        mutex: "plantshealth");
                 }
 
                 break;
@@ -1044,7 +1044,7 @@ public class PlantsVsZombies : InjectEffectPack
                             return true;
                         },
                         () => Connector.SendMessage($"{request.DisplayViewer} shuffled all your cards."),
-                        null, true, "cards");
+                        mutex: "cards");
                 }
 
                 break;
