@@ -286,13 +286,13 @@ public class PlantsVsZombies : InjectEffectPack
                 int sun = sun_ch.GetInt();
                 if (give && sun == MAX_SUN)
                 {
-                    Respond(request, EffectStatus.FailTemporary, StandardErrors.AlreadyMaximum, "sun");
+                    FastFail(request, EffectStatus.FailTemporary, StandardErrors.AlreadyMaximum, "sun");
                     return;
                 }
 
                 if (!give && sun == 0)
                 {
-                    Respond(request, EffectStatus.FailTemporary, StandardErrors.AlreadyMinimum, "sun");
+                    FastFail(request, EffectStatus.FailTemporary, StandardErrors.AlreadyMinimum, "sun");
                     return;
                 }
 
