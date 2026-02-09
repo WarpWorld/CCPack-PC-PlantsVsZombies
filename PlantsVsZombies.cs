@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using ConnectorLib;
 using ConnectorLib.Memory;
 using CrowdControl.Common;
@@ -36,6 +36,7 @@ public class PlantsVsZombies : InjectEffectPack
     private const byte JZ = 0x84;
     private const byte JNZ = 0x85;
     private const byte JNZ_SHORT = 0x75;
+    private const byte JZ_SHORT = 0x74;
     private const byte JMP = 0xEB;
     private const byte NOP = 0x90;
     private const ushort NOP_NOP = 0x9090;
@@ -65,6 +66,10 @@ public class PlantsVsZombies : InjectEffectPack
     private readonly List<int> original_max_cooldowns = new();
     private readonly List<int> new_max_cooldowns = new();
     private List<int> cards = new();
+    private readonly List<(int Index, int CardType)> disabled_cherry_cards = new();
+    private AddressChain instant_use_ch;
+    private byte instant_use_original;
+    private bool instant_use_initialized;
 
     private byte[] free_space_size_addr;
 
@@ -184,6 +189,8 @@ public class PlantsVsZombies : InjectEffectPack
 
         byte[] zombies_speed_pattern = [0xD8, 0x4B, 0x08, 0x5B, 0xD9, 0x5C, 0x24, 0x04];
         zombies_speed_ch = AddressChain.AOB(Connector, 0, zombies_speed_pattern, "xxxxxxxx", 0, ScanHint.ExecutePage, imagebase_ch).Cache().PreCache();
+
+        InitInstantUsePatch(imagebase_ch);
     }
 
     private void DeinitGame()
@@ -510,6 +517,8 @@ public class PlantsVsZombies : InjectEffectPack
                     {
                         byte[] nops = [0x90, 0x90, 0x90, 0x90, 0x90, 0x90];
                         invincible_zombies_ch.SetBytes(nops);
+                        DisableCherryCards();
+                        ApplyInstantUseInvincibleOverride();
                         Connector.SendMessage($"{request.DisplayViewer} made zombies invincible.");
                         return true;
                     },
@@ -519,6 +528,8 @@ public class PlantsVsZombies : InjectEffectPack
                 {
                     byte[] code = [0xF, 0x85, 0x9B, 0x00, 0x00, 0x00];
                     invincible_zombies_ch.SetBytes(code);
+                    RestoreCherryCards();
+                    RestoreInstantUsePatch();
                     Connector.SendMessage("Invincible zombies ended.");
                 });
                 break;
@@ -955,6 +966,12 @@ public class PlantsVsZombies : InjectEffectPack
                 int nactive_zombies = game_ch.Offset(0xAC).GetInt();
                 if (active_zombies_ptr.GetInt() != 0 && nactive_zombies > 0)
                 {
+                    if (invincible_zombies_ch.GetByte() == NOP)
+                    {
+                        DelayEffect(request, StandardErrors.NoValidTargets);
+                        return;
+                    }
+
                     AddressChain active_zombies_ch = active_zombies_ptr.Follow();
                     AddressChain tmp_ch;
 
@@ -1084,6 +1101,8 @@ public class PlantsVsZombies : InjectEffectPack
                 byte[] code = [0xF, 0x85, 0x9B, 0x00, 0x00, 0x00];
                 invincible_zombies_ch.SetBytes(code);
             }
+            RestoreCherryCards();
+            RestoreInstantUsePatch();
 
             //slow bullets
             SetUShort(slow_bullets_ch, 0x7575);
@@ -1169,6 +1188,122 @@ public class PlantsVsZombies : InjectEffectPack
     protected int random_big_percentage(int value)
     {
         return (int)((value / 100.0f) * RNG.Next(MIN_BIG_PERCENTAGE, MAX_BIG_PERCENTAGE));
+    }
+
+    private void DisableCherryCards()
+    {
+        if (disabled_cherry_cards.Any())
+        {
+            return;
+        }
+
+        AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+        if (cards_ptr_ch.GetInt() == 0)
+        {
+            return;
+        }
+
+        AddressChain cards_ch = cards_ptr_ch.Follow();
+        int ncards = cards_ch.Offset(0x24).GetInt();
+        for (int i = 0; i < ncards; i++)
+        {
+            AddressChain card_type_ch = cards_ch.Offset(0x5C + i * 0x50);
+            int card_type = card_type_ch.GetInt();
+            if (card_type == (int)PLANT.CHERRY)
+            {
+                disabled_cherry_cards.Add((i, card_type));
+                card_type_ch.SetInt((int)PLANT.DISABLED);
+            }
+        }
+    }
+
+    private void RestoreCherryCards()
+    {
+        if (!disabled_cherry_cards.Any())
+        {
+            return;
+        }
+
+        AddressChain cards_ptr_ch = game_ch.Offset(0x15C);
+        if (cards_ptr_ch.GetInt() == 0)
+        {
+            disabled_cherry_cards.Clear();
+            return;
+        }
+
+        AddressChain cards_ch = cards_ptr_ch.Follow();
+        foreach (var entry in disabled_cherry_cards)
+        {
+            AddressChain card_type_ch = cards_ch.Offset(0x5C + entry.Index * 0x50);
+            if (card_type_ch.GetInt() == (int)PLANT.DISABLED)
+            {
+                card_type_ch.SetInt(entry.CardType);
+            }
+        }
+
+        disabled_cherry_cards.Clear();
+    }
+
+    private void InitInstantUsePatch(AddressChain imagebase_ch)
+    {
+        instant_use_initialized = false;
+        instant_use_ch = null;
+
+        try
+        {
+            AddressChain old_version_ch = imagebase_ch.Offset(0x63408);
+            byte old_version_byte = old_version_ch.GetByte();
+            if (IsInstantUseByte(old_version_byte))
+            {
+                instant_use_ch = old_version_ch;
+                instant_use_original = old_version_byte;
+                instant_use_initialized = true;
+                return;
+            }
+
+            AddressChain goty_version_ch = imagebase_ch.Offset(0x66E22);
+            byte goty_version_byte = goty_version_ch.GetByte();
+            if (IsInstantUseByte(goty_version_byte))
+            {
+                instant_use_ch = goty_version_ch;
+                instant_use_original = goty_version_byte;
+                instant_use_initialized = true;
+            }
+        }
+        catch
+        {
+            instant_use_initialized = false;
+            instant_use_ch = null;
+        }
+    }
+
+    private bool IsInstantUseByte(byte value)
+    {
+        return value == JNZ_SHORT || value == JZ_SHORT;
+    }
+
+    private void ApplyInstantUseInvincibleOverride()
+    {
+        if (!instant_use_initialized)
+        {
+            return;
+        }
+
+        byte current = instant_use_ch.GetByte();
+        if (current == JZ_SHORT)
+        {
+            instant_use_ch.SetByte(JNZ_SHORT);
+        }
+    }
+
+    private void RestoreInstantUsePatch()
+    {
+        if (!instant_use_initialized)
+        {
+            return;
+        }
+
+        instant_use_ch.SetByte(instant_use_original);
     }
 
     protected bool is_not_paused()
