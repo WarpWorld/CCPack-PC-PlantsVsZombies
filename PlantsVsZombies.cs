@@ -1068,7 +1068,7 @@ public class PlantsVsZombies : InjectEffectPack
             }
             default:
                 Log.Message("Unsupported effect " + codeParams[0]);
-                Respond(request, EffectStatus.FailPermanent, StandardErrors.UnknownEffect, request);
+                Respond(request, EffectStatus.FailPermanent, StandardErrors.EffectUnknown, request);
                 break;
         }
     }
