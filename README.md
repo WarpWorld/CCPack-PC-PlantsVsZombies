@@ -1,5 +1,11 @@
 # Plants vs. Zombies
 
+## Pack metadata
+
+- **Game:** Plants vs Zombies
+- **Crowd Control game ID:** `PlantsVsZombies`
+- **Connector:** `PCConnector`
+
 This folder contains the C# Crowd Control pack definition for **Plants vs. Zombies**.
 
 ## Connector and setup
